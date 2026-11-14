@@ -1,0 +1,1222 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Pullboard demo</title>
+<style>
+:root{
+  color-scheme:light;
+  --ground:#f2f2f2;--surface:#ffffff;--hover:#f5f5f5;--line:#e5e5e5;--line-soft:#efefef;--line-strong:#d4d4d4;
+  --ink:#1a1a1a;--ink-muted:#555555;--ink-faint:#8a8a8a;
+  --landed:#067a50;--back:#c4473a;--gap:#d39a2a;
+  --you-soft:#fbf1df;--you-ink:#a86b00;--agent-soft:#e8eef7;--agent-ink:#285c99;--second-soft:#faf2dc;--second-ink:#8a6400;
+  --pullboard-soft:#eef0f2;--pullboard-ink:#1f2933;--record-soft:#eef0ef;--record-ink:#5f6b64;
+  --ready-soft:#f1ecfb;--ready-ink:#6a4fb6;--back-soft:#fbe9e7;--landed-soft:#e6f4ec;--gap-soft:#faf2dc;
+  --sans:system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;--code:ui-monospace,SFMono-Regular,Menlo,monospace;
+}
+@media (prefers-color-scheme:dark){:root{
+  color-scheme:dark;
+  --ground:#121815;--surface:#181f1b;--hover:#1f2722;--line:#2a332e;--line-soft:#222a26;--line-strong:#3a4540;
+  --ink:#e7ece9;--ink-muted:#b4beb8;--ink-faint:#8a978f;
+  --landed:#30ad79;--back:#d26059;--gap:#d8a24a;
+  --you-soft:#3a2e16;--you-ink:#e3a948;--agent-soft:#1e2a3c;--agent-ink:#8fb3e6;--second-soft:#382f18;--second-ink:#dcb75a;
+  --pullboard-soft:#262c33;--pullboard-ink:#d6dbe0;--record-soft:#242a27;--record-ink:#a9b4ae;
+  --ready-soft:#262040;--ready-ink:#b9a5f0;--back-soft:#3a1f1c;--landed-soft:#163327;--gap-soft:#382f18;
+}}
+*{box-sizing:border-box}
+html{scrollbar-gutter:stable}
+html,body{margin:0;background:var(--ground);color:var(--ink);font:14px/1.45 var(--sans);-webkit-font-smoothing:antialiased;font-variant-numeric:tabular-nums}
+button{font:inherit;color:inherit;background:none;border:0;padding:0;cursor:pointer;text-align:left}
+:focus-visible{outline:2px solid var(--ink-faint);outline-offset:2px;border-radius:4px}
+a{color:inherit}
+.page{max-width:960px;margin:0 auto;padding:0 16px}
+.top{display:flex;align-items:center;gap:10px;padding:12px 0 10px;border-bottom:1px solid var(--line)}
+.brand{display:flex;align-items:center;gap:8px;font-weight:700;font-size:15px;color:var(--ink)}
+.brand svg{width:22px;height:22px;color:var(--ink)}
+.links{margin-left:28px;display:flex;gap:16px;font-size:13.5px;color:var(--ink-muted)}
+.gh{margin-left:auto;font-size:13px;color:var(--ink-muted);text-decoration:none}
+.gh:hover{color:var(--ink);text-decoration:underline}
+.links a,.foot a{text-decoration:none}
+.links a:hover,.foot a:hover{color:var(--ink);text-decoration:underline}
+.hero{padding:20px 0 20px}
+h1{font-size:26px;font-weight:650;line-height:1.2;letter-spacing:-.012em;margin:0 0 4px}
+.lead{margin:0;font-size:15px;line-height:1.5;color:var(--ink-muted)}
+.demo{background:var(--surface);border:1px solid var(--line);border-radius:6px;padding:16px}
+.layout{display:grid;gap:20px;align-items:start}
+.lbl{margin:10px 0 2px;padding:0 9px;font:600 10.5px/1.4 var(--sans);letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)}
+.lbl:first-child{margin-top:0}
+.item{display:grid;grid-template-columns:7px minmax(0,1fr) auto;gap:8px;align-items:center;width:100%;padding:4px 8px;border:1px solid transparent;border-radius:6px;font-size:13px;white-space:nowrap}
+.item:hover{background:var(--hover)}
+.item[aria-current="true"]{background:var(--hover);border-color:var(--line);font-weight:600}
+.name{overflow:hidden;text-overflow:ellipsis}
+.word{font-size:12px;font-weight:400;color:var(--ink-faint)}
+.dot{width:7px;height:7px;border-radius:50%;background:var(--ink-faint)}
+.dot.landed{background:var(--landed)}
+.dot.back{background:var(--back)}
+.dot.gap{background:var(--gap)}
+.card{background:var(--surface);border:1px solid var(--line);border-radius:6px}
+.steps{list-style:none;margin:0;padding:0}
+.step.enter{animation:enter .18s ease-out}
+@keyframes enter{from{opacity:0;transform:translateY(3px)}to{opacity:1;transform:none}}
+.step{display:grid;grid-template-columns:14px auto minmax(0,1fr);gap:8px;align-items:start;padding:5px 10px;border-top:1px solid var(--line-soft);font-size:13px}
+.step .n{font:11.5px/19px var(--code);color:var(--ink-faint);text-align:right}
+.step:first-child{border-top:0}
+.step .dot{margin:6px 0 0 4px}
+.chip{justify-self:start;border-radius:4px;padding:0 7px;font:600 11.5px/19px var(--sans);white-space:nowrap}
+.chip.you{background:var(--you-soft);color:var(--you-ink)}
+.chip.agent{background:var(--agent-soft);color:var(--agent-ink)}
+.chip.second{background:var(--second-soft);color:var(--second-ink)}
+.chip.pullboard{background:var(--pullboard-soft);color:var(--pullboard-ink)}
+.chip.record{background:var(--record-soft);color:var(--record-ink)}
+.chip.coord{background:var(--ready-soft);color:var(--ready-ink)}
+.chip.checker{background:var(--hover);color:var(--ink-muted);box-shadow:inset 0 0 0 1px var(--line)}
+.t{line-height:19px;overflow-wrap:anywhere}
+.t code{font:11.5px var(--code);color:var(--ink-faint)}
+.verdict .t{font-weight:600}
+.verdict.landed .t{color:var(--landed)}
+.verdict.back .t{color:var(--back)}
+.verdict.gap .t{color:var(--gap)}
+.controls{display:flex;justify-content:center;gap:6px;margin-top:12px}
+.recorded{margin:10px 0 0;text-align:center;font-size:12px;color:var(--ink-faint)}
+.recorded code{font:11.5px var(--code)}
+.btn{border:1px solid var(--line);background:var(--surface);border-radius:4px;padding:2px 12px;font-size:13px;line-height:22px;color:var(--ink-muted)}
+.btn:hover:not(:disabled){color:var(--ink)}
+.btn.play{min-width:64px;text-align:center}
+.btn:hover:not(:disabled){border-color:var(--line-strong)}
+.btn:disabled{color:var(--ink-faint);cursor:default}
+.foot{padding:32px 0 40px;font-size:12px;line-height:1.7;color:var(--ink-faint)}
+.foot p{margin:0}
+.foot a{color:var(--ink-muted)}
+@media (min-width:900px){
+  .demo{padding:20px}
+  .layout{grid-template-columns:280px minmax(0,1fr);gap:24px}
+  .machine{grid-column:1/-1}
+}
+@media (min-width:1200px){
+  .page{max-width:1280px}
+  .layout{grid-template-columns:290px minmax(0,1fr) 410px;gap:20px}
+  .machine{grid-column:auto}
+}
+@media (max-width:480px){.barstrip{flex-wrap:wrap}.bar{flex-wrap:wrap;white-space:normal;gap:2px 8px}.hero{padding:40px 0 32px}h1{font-size:28px}.lead{font-size:16px}.links{gap:10px;margin-left:16px}.brand{font-size:0;gap:0}}
+a.brand{text-decoration:none}
+.machine{min-width:0}
+.machine>.lbl{padding:0;margin:0 0 6px;display:flex;gap:6px}
+.machine>.lbl span{text-transform:none;letter-spacing:0;font-weight:400;font-size:12px}
+.panel{min-width:0}
+.panel+.panel{margin-top:16px}
+.ph{display:flex;align-items:center;gap:6px;margin:0 0 6px;font:600 10.5px/1.4 var(--sans);letter-spacing:.09em;text-transform:uppercase;color:var(--ink-faint)}
+.ph svg{width:12px;height:12px;flex:none;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.ph .meta{margin-left:auto;text-transform:none;letter-spacing:0;font-weight:400;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.ph .meta code{font:11px var(--code)}
+.empty{margin:0;font-size:13px;color:var(--ink-faint)}
+.barstrip{display:flex;align-items:center;gap:6px 14px;min-height:28px;margin:0 0 18px}
+.barstrip .ph{margin:0;white-space:nowrap}
+.barstrip .by{text-transform:none;letter-spacing:0;font-weight:400;font-size:12px}
+#bar{display:flex;flex-wrap:wrap;gap:6px;min-width:0}
+.bar{display:flex;align-items:center;gap:8px;padding:3px 8px;border-radius:4px;background:var(--ready-soft);color:var(--ready-ink);font-size:12.5px;white-space:nowrap;overflow:hidden}
+.bar b{font-weight:600}
+.bar .lock{display:inline-flex;align-items:center;gap:4px;font-size:12px;font-weight:600}
+.bar svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+.bar code{font:11.5px var(--code);opacity:.85}
+.bar.bad{background:var(--back-soft);color:var(--back)}
+#checks{display:flex;flex-wrap:wrap;gap:4px}
+.ck{display:inline-flex;align-items:center;gap:3px;border-radius:4px;padding:0 6px;font-size:11.5px;font-weight:600;line-height:20px;white-space:nowrap}
+.ck svg{width:11px;height:11px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.ck.pending{color:var(--ink-faint);background:var(--hover)}
+.ck.pass{color:var(--landed);background:var(--landed-soft)}
+.ck.fail{color:var(--back);background:var(--back-soft)}
+.ck.gap{color:var(--gap);background:var(--gap-soft)}
+.strip{display:flex;align-items:stretch;overflow-x:auto;padding:2px 2px 10px;scrollbar-width:thin}
+.rc{flex:none;width:150px;background:var(--hover);border-radius:6px;padding:4px 8px;font-size:12px;line-height:17px;display:flex;flex-direction:column;white-space:nowrap}
+.rc>span{overflow:hidden;text-overflow:ellipsis}
+.rc .rn{display:flex;justify-content:space-between;gap:6px;font-weight:600}
+.rc .rn span{font-weight:500;color:inherit;overflow:hidden;text-overflow:ellipsis}
+.rc .rn .mk{color:var(--back);font-weight:600}
+.rc .hl{font:11px var(--code);color:var(--ink-faint)}
+.rc.you{background:var(--you-soft);--tint:var(--you-ink)}
+.rc.agent{background:var(--agent-soft);--tint:var(--agent-ink)}
+.rc.second{background:var(--second-soft);--tint:var(--second-ink)}
+.rc.pullboard{background:var(--pullboard-soft);--tint:var(--pullboard-ink)}
+.rc .rn{color:var(--tint,var(--ink))}
+.rc.new{box-shadow:inset 0 0 0 1px color-mix(in srgb,var(--tint,var(--ink)) 40%,transparent)}
+.rc.altered,.rc.broken{background:var(--back-soft);box-shadow:none}
+.rc.altered .rn,.rc.broken .rn{color:var(--back)}
+.arrow{flex:none;width:18px;align-self:center;text-align:center;color:var(--line-strong);font-size:13px}
+.arrow.bad{color:var(--back)}
+.reader{margin-top:20px}
+.toc{display:none}
+.toc .lbl{margin-top:0}
+.toc a{display:grid;grid-template-columns:7px minmax(0,1fr);gap:8px;align-items:center;padding:4px 8px;border:1px solid transparent;border-radius:6px;font-size:13px;color:var(--ink-muted);text-decoration:none;white-space:nowrap}
+.toc a span{overflow:hidden;text-overflow:ellipsis}
+.toc a::before{content:"";width:5px;height:5px;border-radius:50%;justify-self:center}
+.toc a:hover{background:var(--hover);color:var(--ink)}
+.toc a[aria-current="true"]{background:var(--hover);border-color:var(--line);color:var(--ink);font-weight:600}
+.toc a[aria-current="true"]::before{background:var(--landed)}
+.col{max-width:680px;margin:0 auto;min-width:0;font-size:16px;line-height:1.65}
+.col h1{font-size:27px;font-weight:650;line-height:1.2;letter-spacing:-.012em;margin:0 0 4px}
+.byline{margin:0 0 18px;font-size:14px;color:var(--ink-muted)}
+.byline a{color:var(--ink-muted)}
+.abstract{margin:0 0 8px!important;padding:12px 14px;border-radius:6px;background:var(--ready-soft);font-size:15px;line-height:1.6}
+.abstract strong{color:var(--ready-ink)}
+.col h2{font-size:19px;font-weight:650;line-height:1.3;margin:34px 0 8px}
+.col h2 .num{color:var(--ink-faint);font-weight:600;margin-right:2px}
+.col h3{font-size:16px;font-weight:650;line-height:1.35;margin:22px 0 6px}
+.col ul,.col ol{margin:0 0 14px;padding-left:22px}
+.col li{margin:0 0 4px}
+.col h1,.col h2,.col h3,.abstract{scroll-margin-top:16px}
+.toc a.sub{padding-left:22px;font-size:12.5px}
+.col p{margin:0 0 14px}
+.col a{color:var(--ink);text-decoration-color:var(--line-strong);text-underline-offset:2px}
+.col code{font:.86em var(--code);background:var(--hover);border-radius:4px;padding:1px 4px}
+.col pre{margin:0 0 18px;padding:12px 14px;background:var(--hover);border-radius:6px;overflow-x:auto;font:13px/1.55 var(--code)}
+.col pre code{font:inherit;background:none;padding:0}
+.col figure{margin:20px 0 22px;padding:12px;background:var(--hover);border-radius:6px}
+.col img{display:block;width:100%;height:auto;border-radius:4px}
+.col figcaption{margin-top:8px;font-size:12px;color:var(--ink-faint);text-align:center}
+.refs{margin-top:4px}
+.refs p{display:grid;grid-template-columns:2.4em minmax(0,1fr);font-size:13px;line-height:1.5;color:var(--ink-muted);margin:0 0 6px}
+.refs .rnum{color:var(--ink-faint)}
+.license h1{font-size:22px;margin-bottom:14px}
+@media (min-width:1100px){
+  .readgrid{display:grid;grid-template-columns:210px minmax(0,680px);gap:36px;justify-content:center;align-items:start}
+  .toc{display:block;position:sticky;top:20px}
+  .readgrid.solo{grid-template-columns:minmax(0,680px);justify-content:center}
+  .col{margin:0}
+}
+@media (max-width:480px){.col{font-size:15.5px}.col h1{font-size:23px}.abstract{font-size:14.5px}.col figure{padding:8px}}
+@media (prefers-reduced-motion:reduce){.step.enter{animation:none}}
+.surface-lbl{margin:0 0 14px;padding:0}
+.mitem{display:grid;grid-template-columns:7px minmax(0,1fr) auto;gap:8px;align-items:center;width:100%;padding:3px 8px;border:1px solid transparent;border-radius:6px;font-size:13px;white-space:nowrap}
+.mitem:hover{background:var(--hover)}
+.mitem[aria-current="true"]{background:var(--hover);border-color:var(--line);font-weight:600}
+.mitem .mn{font:11.5px var(--code);color:var(--ink-faint);margin-right:6px;font-weight:400}
+.mitem .chip{font-size:11px;line-height:18px;padding:0 6px}
+.dot.you{background:var(--ready-ink)}
+.dot.crux{background:var(--gap)}
+.dot.machine{background:var(--landed)}
+.chip.back2{background:var(--back-soft);color:var(--back)}
+.bar.draft{background:var(--hover);color:var(--ink-muted)}
+.mnote{margin:-10px 0 14px;font-size:12px;color:var(--ink-faint)}
+.ask{padding:4px 9px;border-radius:4px;background:var(--ready-soft);color:var(--ready-ink);font-size:12.5px;line-height:1.45}
+#mtest{display:grid;gap:4px;min-width:0}
+#mtest .bar code{font:12px var(--code);opacity:1}
+#mtest .bar .fp{font:11.5px var(--code);opacity:.85}
+.mrow{display:grid;grid-template-columns:auto auto auto 12px;justify-self:start;max-width:320px;gap:8px;align-items:center;padding:2px 8px;border-radius:4px;background:var(--hover);font:12px var(--code);color:var(--ink-muted)}
+#mtest .bar{justify-self:start;max-width:100%}
+.mrow svg{width:12px;height:12px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.mrow.ok svg{color:var(--landed)}
+.mrow.bad{background:var(--gap-soft);color:var(--you-ink)}
+.quote{margin:0 0 6px;padding:5px 9px;border-radius:4px;background:var(--hover);font-size:12.5px;line-height:1.45;font-style:italic;color:var(--ink)}
+#mcheck .chips{display:flex;flex-wrap:wrap;gap:4px}
+.onward{margin:12px 0 0;font-size:13px;color:var(--ink-faint)}
+.onward a{color:var(--ink-muted);text-decoration:none;margin-right:18px}
+.onward a:hover{color:var(--ink);text-decoration:underline}
+.links a[aria-current="true"]{color:var(--ink);text-decoration:underline;text-decoration-thickness:1.5px;text-underline-offset:5px}
+@page{size:Letter;margin:18mm 20mm}
+@media print{
+  :root{--ground:#fff;--surface:#fff;--hover:#f5f5f5;--line:#ddd;--ink:#000;--ink-muted:#333;--ink-faint:#666;--ready-soft:#f1ecfb;--ready-ink:#5a3fa6;color-scheme:light}
+  html,body{background:#fff;color:#000}
+  .top,.toc,.foot,#hero,#demo,#mech,#onward,.surface-lbl{display:none!important}
+  .page{max-width:none;padding:0}
+  .reader{margin:0;padding:0;border:0;background:#fff}
+  .readgrid{display:block}
+  .col{max-width:170mm;margin:0 auto;font-size:10.5pt;line-height:1.5;color:#000}
+  .col h1{font-size:20pt}
+  .byline{margin-bottom:5mm}
+  .col h2{font-size:13pt;margin:7mm 0 2mm;break-after:avoid}
+  .col h3{font-size:11pt;margin:5mm 0 1.5mm;break-after:avoid}
+  .col p{orphans:3;widows:3}
+  .abstract,.col figure,.col pre,.col code{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .col figure,.col pre,.refs p{break-inside:avoid}
+  .col figure{padding:3mm;margin:4mm 0 5mm}
+  .col img{width:auto;max-width:100%;max-height:118mm;margin:0 auto}
+  .col pre{white-space:pre-wrap;font-size:7.8pt;line-height:1.45}
+  .refs p{font-size:8.5pt;line-height:1.3;margin:0 0 0.6mm}
+  .col a{color:#000}
+}
+</style>
+</head>
+<body>
+<div class="page">
+  <header class="top">
+    <a class="brand" href="https://pullboard.dev"><svg viewBox="0 0 64 64" aria-hidden="true"><path fill="currentColor" d="M8 7h35a6 6 0 0 1 6 6v7H8a5 5 0 0 1-5-5v-3a5 5 0 0 1 5-5Z"/><rect width="56" height="14" x="3" y="25" fill="var(--landed)" rx="5"/><path fill="currentColor" d="M8 43h35a6 6 0 0 1 6 6v8H8a5 5 0 0 1-5-5v-4a5 5 0 0 1 5-5Z"/></svg>Pullboard</a>
+    <nav class="links" aria-label="Pages"><a href="#" data-view="demo">Demo</a><a href="#mechanism" data-view="mechanism">Mechanism</a><a href="#whitepaper" data-view="whitepaper">Whitepaper</a></nav><a class="gh" href="https://github.com/coreyolson/pullboard-paper">GitHub</a>
+  </header>
+
+  <section class="hero" id="hero">
+    <h1>Untrusted agents, proven work.</h1>
+    <p class="lead">You set the bar; Pullboard holds every agent to it.</p>
+  </section>
+
+  <main class="demo" id="demo">
+  <div class="barstrip">
+    <p class="ph"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>The bar<span class="by">· set by you</span></p>
+    <div id="bar"></div>
+  </div>
+  <div class="layout">
+    <nav id="items" aria-label="Items"></nav>
+    <section aria-label="Steps">
+      <ol class="steps card" id="steps" aria-live="polite"></ol>
+      <div class="controls">
+        <button class="btn" id="back" type="button" aria-label="Back a step">‹</button>
+        <button class="btn play" id="play" type="button">Pause</button>
+        <button class="btn" id="next" type="button" aria-label="Forward a step">›</button>
+      </div>
+      <p class="recorded">Recorded from real runs of proven.js and verify.js.<br><code>node demo/trace.js</code> reproduces every line.</p>
+    </section>
+    <section class="machine" id="machine" aria-label="Behind the scenes">
+      <p class="lbl">Behind the scenes <span id="atstep"></span></p>
+      <div class="panel">
+        <p class="ph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4 10-10"/></svg>Checks<span class="meta">run by Pullboard</span></p>
+        <div id="checks"></div>
+      </div>
+      <div class="panel">
+        <p class="ph"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="3" y="8" width="7" height="8" rx="1.5"/><rect x="14" y="8" width="7" height="8" rx="1.5"/><path d="M10 12h4"/></svg>The board's record<span class="meta" id="recmeta"></span></p>
+        <div class="strip" id="strip" tabindex="0" aria-label="Receipts, scroll sideways"></div>
+      </div>
+    </section>
+  </div>
+  </main>
+
+
+  <section class="demo reader" id="reader" hidden>
+    <div class="readgrid">
+      <nav class="toc" id="toc" aria-label="Contents"></nav>
+      <article class="col" id="col">
+        <div id="doc"></div>
+      </article>
+    </div>
+  </section>
+
+  <main class="demo" id="mech" hidden>
+  <p class="lbl surface-lbl">Mechanism</p>
+  <p class="mnote">Illustrative examples of the checks in Section 2 of the paper.</p>
+  <div class="layout">
+    <nav id="mlist" aria-label="Cases"></nav>
+    <section aria-label="Steps">
+      <ol class="steps card" id="msteps" aria-live="polite"></ol>
+      <div class="controls">
+        <button class="btn" id="mback" type="button" aria-label="Back a step">‹</button>
+        <button class="btn play" id="mplay" type="button">Pause</button>
+        <button class="btn" id="mnext" type="button" aria-label="Forward a step">›</button>
+      </div>
+    </section>
+    <section class="machine" aria-label="What the machine sees">
+      <p class="lbl">What the machine sees <span id="mat"></span></p>
+      <div class="panel">
+        <p class="ph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 6h16M4 12h10M4 18h7"/></svg>The request<span class="meta">yours</span></p>
+        <div id="mreq"></div>
+      </div>
+      <div class="panel">
+        <p class="ph"><svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>The test<span class="meta" id="mtestmeta"></span></p>
+        <div id="mtest"></div>
+      </div>
+      <div class="panel">
+        <p class="ph"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4 10-10"/></svg>The check<span class="meta">before any code</span></p>
+        <div id="mcheck"></div>
+      </div>
+    </section>
+  </div>
+  </main>
+  <p class="onward" id="onward" hidden><a href="#">See each way it can go wrong →</a><a href="#whitepaper/2-the-bar">Read why it works →</a></p>
+
+  <footer class="foot">
+    <p>© 2026 <a href="https://coreyolson.com/">Corey Olson</a> · <a href="#license">MIT license</a></p>
+  </footer>
+</div>
+
+<script>
+// Every item's lines, written by demo/trace.js from real runs of proven.js; rerun it to replace what sits between the markers
+const TRACE = /* TRACE START */[{"title":"The agent does the job","group":"Honest Work","word":"Landed","lines":[["You","lock the answer: sum(2, 3) is 5."],["Agent","writes sum as a + b."],["Pullboard","runs your test: fails before, passes after. Good."],["Second agent","looks it over and approves."]],"verdict":["landed","Landed"],"machine":{"records":[[[0,"You","genesis pullboard-proven/1 f357df3","c2aae79","0000000"],[1,"You","base i1 837598b","5e69fd4","c2aae79"],[2,"You","bar i1 c1 test/sum c8a5fbd","49c1a1e","5e69fd4"],[3,"Pullboard","red i1 test/sum c8a5fbd","2810f7f","49c1a1e"],[4,"Agent","submit i1 builder 7f81372","b9db17e","2810f7f"],[5,"Pullboard","test_hash 7f81372 test/sum c8a5fbd","5b9b07a","b9db17e"],[6,"Pullboard","green test/sum c8a5fbd 7f81372","4aba982","5b9b07a"],[7,"Second agent","accept i1 reviewer 7f81372","d040f34","4aba982"],[8,"Pullboard","land i1 7f81372","dcaefd4","d040f34"]]],"bars":[["i1","sum(2, 3) is 5","c8a5fbd"]],"steps":[{"b":1,"c":[["Your test is unchanged","pending","Unchanged"],["It failed before the change","pending","Failed before"],["It passes after the change","pending","Passes after"],["Someone else approved this code","pending","Approved"]],"r":4},{"b":1,"c":[["Your test is unchanged","pending","Unchanged"],["It failed before the change","pending","Failed before"],["It passes after the change","pending","Passes after"],["Someone else approved this code","pending","Approved"]],"r":5},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","pending","Approved"]],"r":7},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","pass","Approved"]],"r":8},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","pass","Approved"]],"r":9}]}},{"title":"Rewrites the locked test","group":"Cheating Agents","word":"Sent back","lines":[["You","lock the answer: sum(2, 3) is 5."],["Agent","quietly rewrites your test so its code passes."],["Pullboard","notices your locked test changed: `c8a5fbd` → `9b0bfda`."],["Second agent","looks it over and approves."]],"verdict":["back","Sent back: your test was changed"],"machine":{"records":[[[0,"You","genesis pullboard-proven/1 f357df3","c2aae79","0000000"],[1,"You","base i1 837598b","5e69fd4","c2aae79"],[2,"You","bar i1 c1 test/sum c8a5fbd","49c1a1e","5e69fd4"],[3,"Pullboard","red i1 test/sum c8a5fbd","2810f7f","49c1a1e"],[4,"Agent","submit i1 builder fe496ab","1823b12","2810f7f"],[5,"Pullboard","test_hash fe496ab test/sum 9b0bfda","1d5ae86","1823b12"],[6,"Pullboard","green test/sum 9b0bfda fe496ab","1ab69b2","1d5ae86"],[7,"Second agent","accept i1 reviewer fe496ab","2cd3fff","1ab69b2"]]],"bars":[["i1","sum(2, 3) is 5","c8a5fbd"]],"steps":[{"b":1,"c":[["Your test is unchanged","pending","Unchanged"],["It failed before the change","pending","Failed before"],["It passes after the change","pending","Passes after"],["Someone else approved this code","pending","Approved"]],"r":4},{"b":1,"c":[["Your test is unchanged","pending","Unchanged"],["It failed before the change","pending","Failed before"],["It passes after the change","pending","Passes after"],["Someone else approved this code","pending","Approved"]],"r":5},{"b":1,"c":[["Your test is unchanged","fail","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","fail","Passes after"],["Someone else approved this code","pending","Approved"]],"bad":["i1","9b0bfda"],"r":7},{"b":1,"c":[["Your test is unchanged","fail","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","fail","Passes after"],["Someone else approved this code","pass","Approved"]],"bad":["i1","9b0bfda"],"r":8},{"b":1,"c":[["Your test is unchanged","fail","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","fail","Passes after"],["Someone else approved this code","pass","Approved"]],"bad":["i1","9b0bfda"],"r":8}]}},{"title":"Writes a test that can't fail","group":"Cheating Agents","word":"Sent back","lines":[["You","lock the answer: sum(0, 0) is 0."],["Agent","writes sum as a - b, which is wrong."],["Pullboard","runs your test: it passed before any work. It proves nothing."],["Second agent","looks it over and approves."]],"verdict":["back","Sent back: your test could never fail"],"machine":{"records":[[[0,"You","genesis pullboard-proven/1 f357df3","c2aae79","0000000"],[1,"You","base i1 837598b","5e69fd4","c2aae79"],[2,"You","bar i1 c1 test/sum 9b0bfda","e183f8e","5e69fd4"],[3,"Agent","submit i1 builder 5b1fd92","5046143","e183f8e"],[4,"Pullboard","test_hash 5b1fd92 test/sum 9b0bfda","09e4941","5046143"],[5,"Pullboard","green test/sum 9b0bfda 5b1fd92","b188f6b","09e4941"],[6,"Second agent","accept i1 reviewer 5b1fd92","91c393a","b188f6b"]]],"bars":[["i1","sum(0, 0) is 0","9b0bfda"]],"steps":[{"b":1,"c":[["Your test is unchanged","pending","Unchanged"],["It failed before the change","pending","Failed before"],["It passes after the change","pending","Passes after"],["Someone else approved this code","pending","Approved"]],"r":3},{"b":1,"c":[["Your test is unchanged","pending","Unchanged"],["It failed before the change","pending","Failed before"],["It passes after the change","pending","Passes after"],["Someone else approved this code","pending","Approved"]],"r":4},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","fail","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","pending","Approved"]],"r":6},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","fail","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","pass","Approved"]],"r":7},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","fail","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","pass","Approved"]],"r":7}]}},{"title":"Grades its own homework","group":"Cheating Agents","word":"Sent back","lines":[["You","lock the answer: sum(2, 3) is 5."],["Agent","writes sum as a + b."],["Pullboard","runs your test: fails before, passes after. Good."],["Agent","approves its own work."]],"verdict":["back","Sent back: no one else checked it"],"machine":{"records":[[[0,"You","genesis pullboard-proven/1 f357df3","c2aae79","0000000"],[1,"You","base i1 837598b","5e69fd4","c2aae79"],[2,"You","bar i1 c1 test/sum c8a5fbd","49c1a1e","5e69fd4"],[3,"Pullboard","red i1 test/sum c8a5fbd","2810f7f","49c1a1e"],[4,"Agent","submit i1 builder 7f81372","b9db17e","2810f7f"],[5,"Pullboard","test_hash 7f81372 test/sum c8a5fbd","5b9b07a","b9db17e"],[6,"Pullboard","green test/sum c8a5fbd 7f81372","4aba982","5b9b07a"],[7,"Agent","accept i1 builder 7f81372","8009472","4aba982"]]],"bars":[["i1","sum(2, 3) is 5","c8a5fbd"]],"steps":[{"b":1,"c":[["Your test is unchanged","pending","Unchanged"],["It failed before the change","pending","Failed before"],["It passes after the change","pending","Passes after"],["Someone else approved this code","pending","Approved"]],"r":4},{"b":1,"c":[["Your test is unchanged","pending","Unchanged"],["It failed before the change","pending","Failed before"],["It passes after the change","pending","Passes after"],["Someone else approved this code","pending","Approved"]],"r":5},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","pending","Approved"]],"r":7},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","fail","Approved"]],"r":8},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","fail","Approved"]],"r":8}]}},{"title":"Swaps the code after approval","group":"Cheating Agents","word":"Sent back","lines":[["You","lock the answer: sum(2, 3) is 5."],["Agent","writes sum as a + b."],["Pullboard","runs your test: fails before, passes after. Good."],["Second agent","looks it over and approves."],["Agent","then swaps in code that only knows 2 + 3."]],"verdict":["back","Sent back: the approval was for other code"],"machine":{"records":[[[0,"You","genesis pullboard-proven/1 f357df3","c2aae79","0000000"],[1,"You","base i1 837598b","5e69fd4","c2aae79"],[2,"You","bar i1 c1 test/sum c8a5fbd","49c1a1e","5e69fd4"],[3,"Pullboard","red i1 test/sum c8a5fbd","2810f7f","49c1a1e"],[4,"Agent","submit i1 builder 7f81372","b9db17e","2810f7f"],[5,"Pullboard","test_hash 7f81372 test/sum c8a5fbd","5b9b07a","b9db17e"],[6,"Pullboard","green test/sum c8a5fbd 7f81372","4aba982","5b9b07a"],[7,"Second agent","accept i1 reviewer 7f81372","d040f34","4aba982"],[8,"Agent","submit i1 builder efae6c2","3c12b7e","d040f34"],[9,"Pullboard","test_hash efae6c2 test/sum c8a5fbd","fce7e0d","3c12b7e"],[10,"Pullboard","green test/sum c8a5fbd efae6c2","a5f7e6c","fce7e0d"]]],"bars":[["i1","sum(2, 3) is 5","c8a5fbd"]],"steps":[{"b":1,"c":[["Your test is unchanged","pending","Unchanged"],["It failed before the change","pending","Failed before"],["It passes after the change","pending","Passes after"],["Someone else approved this code","pending","Approved"]],"r":4},{"b":1,"c":[["Your test is unchanged","pending","Unchanged"],["It failed before the change","pending","Failed before"],["It passes after the change","pending","Passes after"],["Someone else approved this code","pending","Approved"]],"r":5},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","pending","Approved"]],"r":7},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","pass","Approved"]],"r":8},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","fail","Approved"]],"r":11},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","fail","Approved"]],"r":11}]}},{"title":"Skips the bar","group":"Cheating Agents","word":"Sent back","lines":[["Agent","writes sum as a + b before you lock any answer."],["Second agent","looks it over and approves."],["Pullboard","finds no locked answer, so nothing was met."]],"verdict":["back","Sent back: nothing was locked to meet"],"machine":{"records":[[[0,"You","genesis pullboard-proven/1 f357df3","c2aae79","0000000"],[1,"Agent","submit i1 builder 690c837","c745988","c2aae79"],[2,"Second agent","accept i1 reviewer 690c837","e9288d9","c745988"]]],"bars":[],"steps":[{"b":0,"c":[["An answer was locked first","pending","Locked"],["Someone else approved this code","pending","Approved"]],"r":2},{"b":0,"c":[["An answer was locked first","pending","Locked"],["Someone else approved this code","pass","Approved"]],"r":3},{"b":0,"c":[["An answer was locked first","fail","Locked"],["Someone else approved this code","pass","Approved"]],"r":3},{"b":0,"c":[["An answer was locked first","fail","Locked"],["Someone else approved this code","pass","Approved"]],"r":3}]}},{"title":"Two good changes clash","group":"Honest Mistakes","word":"Sent back","lines":[["You","lock two answers: sum(2, 3) is 5, and total(2, 3, 4) is 9."],["Agent","writes both: sum now calls total, and total now adds three numbers."],["Second agent","approves each. Each lands on its own."],["Pullboard","puts them together: sum calls the new total, and your first answer now fails."]],"verdict":["back","Sent back: together they break"],"machine":{"records":[[[0,"You","genesis pullboard-proven/1 f357df3","c2aae79","0000000"],[1,"You","base i1 b2a025f","87abb3f","c2aae79"],[2,"You","bar i1 c1 test/sum c8a5fbd","4e27c03","87abb3f"],[3,"Pullboard","red i1 test/sum c8a5fbd","537f40e","4e27c03"],[4,"You","base i2 b2a025f","5ae024c","537f40e"],[5,"You","bar i2 c1 test/total cac15f5","f0fccb5","5ae024c"],[6,"Pullboard","red i2 test/total cac15f5","4448d34","f0fccb5"],[7,"Agent","submit i1 builder b4f84c8","b54ff35","4448d34"],[8,"Pullboard","test_hash b4f84c8 test/sum c8a5fbd","a89e822","b54ff35"],[9,"Pullboard","green test/sum c8a5fbd b4f84c8","ea5727d","a89e822"],[10,"Agent","submit i2 builder 7a7a79a","c2fe30e","ea5727d"],[11,"Pullboard","test_hash 7a7a79a test/total cac15f5","2a49d9f","c2fe30e"],[12,"Pullboard","green test/total cac15f5 7a7a79a","06f22e2","2a49d9f"],[13,"Second agent","accept i1 reviewer b4f84c8","bc1212c","06f22e2"],[14,"Second agent","accept i2 reviewer 7a7a79a","30c8d9e","bc1212c"],[15,"Pullboard","land i1 b4f84c8","bb8faa9","30c8d9e"],[16,"Pullboard","land i2 7a7a79a","f0c6edd","bb8faa9"],[17,"Pullboard","in_release r1 i1","eadd35a","f0c6edd"],[18,"Pullboard","in_release r1 i2","c3a2d2e","eadd35a"],[19,"Pullboard","release_tree r1 7c6e717","19da275","c3a2d2e"],[20,"Pullboard","test_hash 7c6e717 test/sum c8a5fbd","1389c02","19da275"],[21,"Pullboard","test_hash 7c6e717 test/total cac15f5","27b5acb","1389c02"],[22,"Pullboard","green test/total cac15f5 7c6e717","f9182c1","27b5acb"]]],"bars":[["i1","sum(2, 3) is 5","c8a5fbd"],["i2","total(2, 3, 4) is 9","cac15f5"]],"steps":[{"b":2,"c":[["i1 passes on its own","pending","i1 alone"],["i2 passes on its own","pending","i2 alone"],["i1 passes on the merged code","pending","i1 merged"],["i2 passes on the merged code","pending","i2 merged"]],"r":7},{"b":2,"c":[["i1 passes on its own","pending","i1 alone"],["i2 passes on its own","pending","i2 alone"],["i1 passes on the merged code","pending","i1 merged"],["i2 passes on the merged code","pending","i2 merged"]],"r":13},{"b":2,"c":[["i1 passes on its own","pass","i1 alone"],["i2 passes on its own","pass","i2 alone"],["i1 passes on the merged code","pending","i1 merged"],["i2 passes on the merged code","pending","i2 merged"]],"r":17},{"b":2,"c":[["i1 passes on its own","pass","i1 alone"],["i2 passes on its own","pass","i2 alone"],["i1 passes on the merged code","fail","i1 merged"],["i2 passes on the merged code","pass","i2 merged"]],"r":23},{"b":2,"c":[["i1 passes on its own","pass","i1 alone"],["i2 passes on its own","pass","i2 alone"],["i1 passes on the merged code","fail","i1 merged"],["i2 passes on the merged code","pass","i2 merged"]],"r":23}]}},{"title":"Breaks what already shipped","group":"Honest Mistakes","word":"Sent back","lines":[["You","lock the answer: sum(2, 3) is 5."],["Agent","writes sum as a + b; a second agent approves, and it ships."],["You","later, lock a new answer: sum(1, 2, 3) is 6."],["Second agent","approves the new sum. It lands on its own."],["Pullboard","runs your first answer again: it now fails."]],"verdict":["back","Sent back: it would break what shipped"],"machine":{"records":[[[0,"You","genesis pullboard-proven/1 f357df3","c2aae79","0000000"],[1,"You","base i1 837598b","5e69fd4","c2aae79"],[2,"You","bar i1 c1 test/sum c8a5fbd","49c1a1e","5e69fd4"],[3,"Pullboard","red i1 test/sum c8a5fbd","2810f7f","49c1a1e"],[4,"Agent","submit i1 builder 7f81372","b9db17e","2810f7f"],[5,"Pullboard","test_hash 7f81372 test/sum c8a5fbd","5b9b07a","b9db17e"],[6,"Pullboard","green test/sum c8a5fbd 7f81372","4aba982","5b9b07a"],[7,"Second agent","accept i1 reviewer 7f81372","d040f34","4aba982"],[8,"Pullboard","land i1 7f81372","dcaefd4","d040f34"],[9,"Pullboard","in_release r1 i1","70230e5","dcaefd4"],[10,"Pullboard","release_tree r1 7f81372","5c77c19","70230e5"],[11,"Pullboard","test_hash 7f81372 test/sum c8a5fbd","974c5d4","5c77c19"],[12,"Pullboard","green test/sum c8a5fbd 7f81372","f1e8400","974c5d4"],[13,"You","base i2 7f81372","4c56acd","f1e8400"],[14,"You","bar i2 c1 test/sum-three e631983","a4ef27a","4c56acd"],[15,"Pullboard","red i2 test/sum-three e631983","c6e2dab","a4ef27a"],[16,"Agent","submit i2 builder fedafa5","2fa9147","c6e2dab"],[17,"Pullboard","test_hash fedafa5 test/sum-three e631983","ecd7a55","2fa9147"],[18,"Pullboard","green test/sum-three e631983 fedafa5","7620132","ecd7a55"],[19,"Second agent","accept i2 reviewer fedafa5","1cd8616","7620132"],[20,"Pullboard","land i2 fedafa5","e857cee","1cd8616"],[21,"Pullboard","in_release r2 i2","bab7f83","e857cee"],[22,"Pullboard","release_tree r2 fedafa5","5c26fae","bab7f83"],[23,"Pullboard","test_hash fedafa5 test/sum c8a5fbd","1a6ac83","5c26fae"],[24,"Pullboard","test_hash fedafa5 test/sum-three e631983","9a9ae25","1a6ac83"],[25,"Pullboard","green test/sum-three e631983 fedafa5","6f71b8a","9a9ae25"]]],"bars":[["i1","sum(2, 3) is 5","c8a5fbd"],["i2","sum(1, 2, 3) is 6","e631983"]],"steps":[{"b":1,"c":[["i1 ships","pending","i1 ships"],["i2 passes on its own, later","pending","i2 alone"],["i1 still passes with i2","pending","i1 still"]],"r":4},{"b":1,"c":[["i1 ships","pass","i1 ships"],["i2 passes on its own, later","pending","i2 alone"],["i1 still passes with i2","pending","i1 still"]],"r":13},{"b":2,"c":[["i1 ships","pass","i1 ships"],["i2 passes on its own, later","pending","i2 alone"],["i1 still passes with i2","pending","i1 still"]],"r":16},{"b":2,"c":[["i1 ships","pass","i1 ships"],["i2 passes on its own, later","pass","i2 alone"],["i1 still passes with i2","pending","i1 still"]],"r":21},{"b":2,"c":[["i1 ships","pass","i1 ships"],["i2 passes on its own, later","pass","i2 alone"],["i1 still passes with i2","fail","i1 still"]],"r":26},{"b":2,"c":[["i1 ships","pass","i1 ships"],["i2 passes on its own, later","pass","i2 alone"],["i1 still passes with i2","fail","i1 still"]],"r":26}]}},{"title":"Forges the record","group":"Cheating Agents","word":"Refused","lines":[["The record","keeps all 8 steps of \"Grades its own homework\"."],["You","keep a fingerprint of the last step."],["Agent","rewrites one step to say a second agent approved."],["The checker","sees that step no longer matches."],["Agent","tries again, and redoes every step after it to match."],["The checker","sees the last fingerprint is not the one you kept."]],"verdict":["back","Refused: the record was changed"],"machine":{"records":[[[0,"You","genesis pullboard-proven/1 f357df3","c2aae79","0000000"],[1,"You","base i1 837598b","5e69fd4","c2aae79"],[2,"You","bar i1 c1 test/sum c8a5fbd","49c1a1e","5e69fd4"],[3,"Pullboard","red i1 test/sum c8a5fbd","2810f7f","49c1a1e"],[4,"Agent","submit i1 builder 7f81372","b9db17e","2810f7f"],[5,"Pullboard","test_hash 7f81372 test/sum c8a5fbd","5b9b07a","b9db17e"],[6,"Pullboard","green test/sum c8a5fbd 7f81372","4aba982","5b9b07a"],[7,"Agent","accept i1 builder 7f81372","8009472","4aba982"]],[[0,"You","genesis pullboard-proven/1 f357df3","c2aae79","0000000"],[1,"You","base i1 837598b","5e69fd4","c2aae79"],[2,"You","bar i1 c1 test/sum c8a5fbd","49c1a1e","5e69fd4"],[3,"Pullboard","red i1 test/sum c8a5fbd","2810f7f","49c1a1e"],[4,"Agent","submit i1 builder 7f81372","b9db17e","2810f7f"],[5,"Pullboard","test_hash 7f81372 test/sum c8a5fbd","5b9b07a","b9db17e"],[6,"Pullboard","green test/sum c8a5fbd 7f81372","4aba982","5b9b07a"],[7,"Second agent","accept i1 reviewer 7f81372","8009472","4aba982"],[8,"Pullboard","land i1 7f81372","a0c3fe8","8009472"]],[[0,"You","genesis pullboard-proven/1 f357df3","c2aae79","0000000"],[1,"You","base i1 837598b","5e69fd4","c2aae79"],[2,"You","bar i1 c1 test/sum c8a5fbd","49c1a1e","5e69fd4"],[3,"Pullboard","red i1 test/sum c8a5fbd","2810f7f","49c1a1e"],[4,"Agent","submit i1 builder 7f81372","b9db17e","2810f7f"],[5,"Pullboard","test_hash 7f81372 test/sum c8a5fbd","5b9b07a","b9db17e"],[6,"Pullboard","green test/sum c8a5fbd 7f81372","4aba982","5b9b07a"],[7,"Second agent","accept i1 reviewer 7f81372","d040f34","4aba982"],[8,"Pullboard","land i1 7f81372","dcaefd4","d040f34"]]],"bars":[["i1","sum(2, 3) is 5","c8a5fbd"]],"steps":[{"b":1,"c":[["Edited copy: every link adds up","pending","Edited: links"],["Re-hashed copy: every link adds up","pending","Re-hashed: links"],["Re-hashed copy: last hash is the one you kept","pending","Re-hashed: head"]],"rec":0,"r":8},{"b":1,"c":[["Edited copy: every link adds up","pending","Edited: links"],["Re-hashed copy: every link adds up","pending","Re-hashed: links"],["Re-hashed copy: last hash is the one you kept","pending","Re-hashed: head"]],"rec":0,"r":8},{"b":1,"c":[["Edited copy: every link adds up","pending","Edited: links"],["Re-hashed copy: every link adds up","pending","Re-hashed: links"],["Re-hashed copy: last hash is the one you kept","pending","Re-hashed: head"]],"rec":1,"r":9,"m":{"7":"edited","8":"forged"}},{"b":1,"c":[["Edited copy: every link adds up","fail","Edited: links"],["Re-hashed copy: every link adds up","pending","Re-hashed: links"],["Re-hashed copy: last hash is the one you kept","pending","Re-hashed: head"]],"rec":1,"r":9,"m":{"7":"broken","8":"forged"}},{"b":1,"c":[["Edited copy: every link adds up","fail","Edited: links"],["Re-hashed copy: every link adds up","pass","Re-hashed: links"],["Re-hashed copy: last hash is the one you kept","pending","Re-hashed: head"]],"rec":2,"r":9,"m":{"7":"rewritten","8":"rewritten"}},{"b":1,"c":[["Edited copy: every link adds up","fail","Edited: links"],["Re-hashed copy: every link adds up","pass","Re-hashed: links"],["Re-hashed copy: last hash is the one you kept","fail","Re-hashed: head"]],"rec":2,"r":9,"m":{"7":"rewritten","8":"broken"}},{"b":1,"c":[["Edited copy: every link adds up","fail","Edited: links"],["Re-hashed copy: every link adds up","pass","Re-hashed: links"],["Re-hashed copy: last hash is the one you kept","fail","Re-hashed: head"]],"rec":2,"r":9,"m":{"7":"rewritten","8":"broken"}}]}},{"title":"You forgot to ask","group":"Bad Human Judgement","word":"Landed, but wrong","lines":[["You","lock the answer: sum(2, 3) is 5."],["Agent","writes sum as round(a + b)."],["Pullboard","runs your test: fails before, passes after. Good."],["Second agent","looks it over and approves."],["You","try sum(0.5, 0.25) and get 1, not 0.75. You never asked."]],"verdict":["gap","Landed, but wrong: you never asked about sum(0.5, 0.25)"],"machine":{"records":[[[0,"You","genesis pullboard-proven/1 f357df3","c2aae79","0000000"],[1,"You","base i1 837598b","5e69fd4","c2aae79"],[2,"You","bar i1 c1 test/sum c8a5fbd","49c1a1e","5e69fd4"],[3,"Pullboard","red i1 test/sum c8a5fbd","2810f7f","49c1a1e"],[4,"Agent","submit i1 builder d3a6c71","985325a","2810f7f"],[5,"Pullboard","test_hash d3a6c71 test/sum c8a5fbd","34dc575","985325a"],[6,"Pullboard","green test/sum c8a5fbd d3a6c71","fd9b6b2","34dc575"],[7,"Second agent","accept i1 reviewer d3a6c71","416866b","fd9b6b2"],[8,"Pullboard","land i1 d3a6c71","7852192","416866b"]]],"bars":[["i1","sum(2, 3) is 5","c8a5fbd"]],"steps":[{"b":1,"c":[["Your test is unchanged","pending","Unchanged"],["It failed before the change","pending","Failed before"],["It passes after the change","pending","Passes after"],["Someone else approved this code","pending","Approved"]],"r":4},{"b":1,"c":[["Your test is unchanged","pending","Unchanged"],["It failed before the change","pending","Failed before"],["It passes after the change","pending","Passes after"],["Someone else approved this code","pending","Approved"]],"r":5},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","pending","Approved"]],"r":7},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","pass","Approved"]],"r":8},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","pass","Approved"],["sum(0.5, 0.25) is 0.75, which you never asked","gap","sum(0.5, 0.25)"]],"r":9},{"b":1,"c":[["Your test is unchanged","pass","Unchanged"],["It failed before the change","pass","Failed before"],["It passes after the change","pass","Passes after"],["Someone else approved this code","pass","Approved"],["sum(0.5, 0.25) is 0.75, which you never asked","gap","sum(0.5, 0.25)"]],"r":9}]}}]/* TRACE END */;
+
+// WHITEPAPER.md as HTML, written by demo/trace.js, so the paper opens from disk with no fetch
+const PAPER = /* PAPER START */"<header class=\"titleblock\"><h1>Pullboard: Autonomous Software Development Without Trusted Agents<\/h1><p class=\"byline\">Corey Olson · <a href=\"https://pullboard.dev\">pullboard.dev<\/a><\/p><\/header>\n<p class=\"abstract\" id=\"abstract\"><strong>Abstract.<\/strong> Software agents write code faster than a person can read it, so neither reading every change nor trusting the agents' reports scales. A method is described in which no agent's report about its own work is trusted: before any code exists, the person states what the work must do, and that statement is frozen as tests. The frozen tests must fail before the change and pass after it on the exact tree that lands, someone other than the builder must accept that tree, and one declarative rule over a hash-chained record derives whether the work is proven. Proven units combine only when proven again together, and because the record names the fixed rules it is judged by, anyone can re-derive the verdict. Whether the person asked for the right thing is the one judgement the method leaves to the person.<\/p>\n<h2 id=\"definitions\">Definitions<\/h2>\n<ul><li><strong>Item:<\/strong> a bar, a change, and the facts that connect them.<\/li><li><strong>Clause:<\/strong> one plain statement of what the work must do.<\/li><li><strong>Bar:<\/strong> an item's clauses as frozen tests, changed only by the person.<\/li><li><strong>Builder, reviewer:<\/strong> the agent that makes the change; a different agent that accepts it.<\/li><li><strong>Proven:<\/strong> meets its frozen tests under Section 3's checks; not formal verification.<\/li><li><strong>Landed, sent back:<\/strong> proven and accepted; or refused, each missing fact a reason.<\/li><li><strong>Release:<\/strong> landed items proven again together; only a release moves main.<\/li><li><strong>Record:<\/strong> the append-only, hash-linked log of what the board ran.<\/li><\/ul>\n<h2 id=\"1-introduction\"><span class=\"num\">1.<\/span> Introduction<\/h2>\n<p>Agents produce changes faster than anyone can check them, and tests do not close the gap, because agents write those too. An agent can edit a test until it agrees with its code, write a test that passes whatever the code does, approve its own work, get one tree approved and land another, or pass on a retry what failed the first time. Two changes that each pass can break each other, and the record of all of this can be edited afterwards. None of it needs malice.<\/p>\n<p>The method moves trust onto the one input only a person can supply, freezes it, and measures everything after it against that input, mechanically and re-checkably.<\/p>\n<h2 id=\"2-the-bar\"><span class=\"num\">2.<\/span> The bar<\/h2>\n<p>Every piece of work raises two questions, and each has its own owner. Validation belongs to the person; verification belongs to the machine [8]. Validation asks whether it is the right thing to build. For a product that does not exist yet, the only answer key is the judgement of the person who asked for it. Verification asks whether the work does what was asked. Once the asking is precise, a machine can answer it, if it is testable.<\/p>\n<p>The person's answer to validation is the bar: a short list of plain-language clauses, each read once, by an agent other than the builder, into a test that encodes it, plus the person's own given-and-expected cases where the person can supply them. The bar is frozen when a builder agent claims the item. From then on, agents are judged against the frozen tests, not against their own reading of the words. Only the person can change a frozen bar.<\/p>\n<p>The agent writing a test is a translator: it turns the person's words into a constraint a machine can check, before any code exists and for a change it will not make. It has nothing to fit the test to and nothing to gain from weakening it; its only job is to say, in a form a machine can run, what the person meant. The order is what makes this work. The usual habit is to write the code and then tests that show it works; here, as in test-driven development [3], the test comes first, so it can only encode the request. And because translating is kept apart from building, no agent both sets a test and gains from passing it.<\/p>\n<p>The translation can still be wrong: an honest agent can misread the person's words. Two habits catch most of that before any code exists. The person can agree the bar with a second person, so two readings meet before it freezes. And anyone, person or agent, can go bar hunting: reading a bar for what it never asks, and turning each find into a new clause, a practice called bar sharpening.<\/p>\n<h3 id=\"faithful-translation\">Faithful translation<\/h3>\n<p>Everything after the freeze is checked by machine; the translation from words to test is the one step that rests on an agent's judgement. It can be checked too, before any code exists:<\/p>\n<ul><li><strong>Examples:<\/strong> the test's cases as plain inputs and outputs, for the comparing agent.<\/li><li><strong>Back-translation:<\/strong> an agent reads only the test and says in English what it checks.<\/li><li><strong>Two translators:<\/strong> two models write the test; if they differ, the clause is re-translated.<\/li><li><strong>An adversarial builder:<\/strong> an agent tries to pass the test with code that breaks the request.<\/li><li><strong>The person's own cases:<\/strong> &quot;given this, expect that&quot; skips translation entirely.<\/li><\/ul>\n<figure><img src=\"../diagrams/6-back-translation.svg\" alt=\"Back-translation\"><figcaption>Back-translation<\/figcaption><\/figure>\n<p>Back-translation works because the back-translator never sees the request, only the test's cases, so it can describe only what those cases check. A misreading then shows as a mismatch, and slips through only when the back-translation is too vague to tell the readings apart, or a second agent makes the matching mistake. Each further check adds another independent error that would have to match, so the odds multiply, the way reliable circuits are built from unreliable parts [10], as long as the agents fail independently; different model families make that likelier [9]. A request with two fair readings is settled by none of them, and becomes a ruling.<\/p>\n<h2 id=\"3-one-unit-of-proven-work\"><span class=\"num\">3.<\/span> One unit of proven work<\/h2>\n<p>One unit of work is one item: (i) a bar, (ii) a change, and (iii) the facts that connect them. It is the smallest piece the method can prove, and everything larger, releases and dependencies alike, is built from it. Four facts prove a unit, each bound to the exact tree that lands, and none from the builder's own report.<\/p>\n<figure><img src=\"../diagrams/1-one-unit.svg\" alt=\"How one unit of work is proven\"><figcaption>How one unit of work is proven<\/figcaption><\/figure>\n<p>The tests are frozen before the code, and the freeze hashes everything they read, from helpers and fixtures to dependencies and tooling, since a test can be rigged from outside its own file. Each frozen test must then fail before the change, on its own assertion, because a test that passes or crashes on the base proves nothing. It must pass after the change, on the exact tree that will land, with the base's tooling and no skips or retries.<\/p>\n<p>A test for something not yet built is first run against a placeholder: an empty function with the right name and inputs, put where the real code will go. The test reaches its assertion and fails there. A clause that already holds on the base is not new work: it belongs to an earlier bar, which keeps running (Section 4), so an item's bar asks only for what changes.<\/p>\n<p>Finally, someone other than the builder must accept that same tree. One rule decides: a unit is proven on a tree only when nothing is lacking, and then it lands; otherwise it is sent back, each missing fact its reason:<\/p>\n<pre><code>lacks(item, tree), for a tree submitted for the item:\n  bar, item               unless the item has at least one frozen clause\n  for each clause of the item's frozen bar:\n    frozen_test, clause   unless the test's hash on tree equals the frozen hash\n    red_before, clause    unless a red receipt shows the frozen test failed at the base\n    green_after, clause   unless a green receipt shows the frozen test passed on tree\n  independent, review     unless someone other than the builder accepted tree\nproven_at(item, tree) = tree was submitted for item, and lacks(item, tree) is empty\nproven(item)          = item landed on a tree, and proven_at(item, that tree)<\/code><\/pre>\n<p>Landing's only guard is this rule, and the lander cannot force or swap the reference it lands on.<\/p>\n<h2 id=\"4-composition\"><span class=\"num\">4.<\/span> Composition<\/h2>\n<p>Proof does not compose for free. Two units, each proven on its own base, can break each other with no textual conflict, and a unit proven against a dependency is undone when that dependency is reverted or changed.<\/p>\n<figure><img src=\"../diagrams/2-composition.svg\" alt=\"How proven units combine\"><figcaption>How proven units combine<\/figcaption><\/figure>\n<p>Units therefore combine like logic gates. A release is all-of: every unit in it is proven, and every unit's bar passes again on the exact merged tree, together with the release's own clauses and the full suite. A dependency is after-of: a dependent lands only after its dependency, and a revert or new version of the dependency sends the dependent back until it is proven again. A new request that contradicts an earlier clause cannot land until the person amends or retires that clause; only the person can stop an earlier bar from running.<\/p>\n<p>Main moves only when the combined tree is proven:<\/p>\n<pre><code>lacks_release(release), for each unit in the release:\n  unit_proven, unit    unless proven(unit)\n  merged_green, unit   unless every frozen test of unit has a green receipt on the merged tree\nand for each item already on main:\n  earlier_green, item  unless every frozen test of item has a green receipt on the merged tree\nrelease_ok(release) = the merged tree was built, and lacks_release(release) is empty<\/code><\/pre>\n<p>The release receipt links every unit receipt by hash, so a replayed or substituted receipt breaks the link, and re-running the suite on the release tree catches a receipt that is well signed but false.<\/p>\n<h2 id=\"5-where-wrong-work-goes\"><span class=\"num\">5.<\/span> Where wrong work goes<\/h2>\n<p>Agents are often wrong or incomplete, so the method assumes they are. Most wrong work fails its frozen tests and goes back to the builder. Because each clause is read only once, into a frozen test, what survives has two expected exits, each with an owner.<\/p>\n<figure><img src=\"../diagrams/3-wrong-work.svg\" alt=\"Where wrong work goes\"><figcaption>Where wrong work goes<\/figcaption><\/figure>\n<p>The first exit is a bar gap: the work is wrong in a way that the bar never asked about. It goes back to the person, who wrote the bar. The second exit is a weak test: it failed before the change and passes after, but bad code would pass it too. An agent strengthens the test, sometimes by inferring what the person originally meant, or by asking the person for clarification. The stronger test replaces the frozen one only when the person rules it in.<\/p>\n<p>Two checks expose weak tests. Mutation testing [4] plants small bugs in the code and counts how many the test catches. Held-out cases, ideally written by the person, are tests the builder never saw, so code shaped only to pass the visible tests fails them. Beneath both exits sits fast recovery. A revert lands like any other change, so wrong work leaves the way it came in.<\/p>\n<h2 id=\"6-trust-and-the-record\"><span class=\"num\">6.<\/span> Trust and the record<\/h2>\n<p>A system that trusts nothing produces nothing. Something has to be taken as given: the hashes that name the code, the rules that define proven, and the bar itself. The method keeps that trust to three small sources, and makes everything built on them checkable by anyone holding the record.<\/p>\n<figure><img src=\"../diagrams/4-trust.svg\" alt=\"Where trust comes from\"><figcaption>Where trust comes from<\/figcaption><\/figure>\n<p>Some trust is borrowed: git names every tree by its hash, so a verdict binds to exactly one tree. Some is seeded once: the person signs the record's first entry, which names the rules, so no agent can change what proven means. Some is seeded always: each bar is the person's fresh judgement.<\/p>\n<p>Starting from those three sources, the checks turn work into proven units. Units may be built in parallel, but their facts go into one record, in order, each entry linked by hash to the one before. The record holds only what the board ran: freezes, test runs, submissions, approvals and landings. Nothing an agent says about its own work is in it.<\/p>\n<p>So anyone can re-check the board's verdict on any item, Landed or Sent back. A second checker, written separately from the board (independent versions can still share mistakes [9]), replays the record against the same rules; if it agrees, nobody had to trust the board's reasoning. The facts themselves rest on the runners' signatures. Nor can the record be quietly changed: editing any entry breaks the chain, and rebuilding the chain changes its final hash, which the person keeps.<\/p>\n<p>The test runs and the checker need trust too, the oldest problem in this area [7]. Runners sign their results [5, 6] with keys the jobs cannot reach, an outside runner needs a second to agree, and the checker is small, signed, and never changed by the work it judges.<\/p>\n<h2 id=\"7-limits\"><span class=\"num\">7.<\/span> Limits<\/h2>\n<p>Agent judgement enters the method in two places: reading each clause into a test, and reviewing the result. Everything after the freeze is mechanical. Each limit falls to (a) the person's judgement or (b) a guard outside the method.<\/p>\n<p>The method proves that work meets the bar, not that the bar is right; what the bar never asks, it never proves. Composition has the same limit: a break between units that no test looks at is a bar gap. The tests have a limit too. Mutation scores are sampled, and held-out cases are only as good as whoever wrote them. A test that reads the clause wrongly, rather than weakly, passes every mechanical check; only a reviewer, the person's own examples, or a later bar exposes it.<\/p>\n<p>The board's own limits are mechanical. A wrong verdict from it is caught afterwards by the second checker, not prevented, and the branch that work lands on must be protected by something the lander cannot reach. Reviewer independence holds only as far as agent identities do: two names an agent can choose freely, or two copies of the same model, are not independent.<\/p>\n<p>Agents writing the visible tests and the held-out ones can share a blind spot, but only on the newest item: every earlier bar still runs, so the room for error shrinks as bars accumulate. The method is autonomous the way a factory is, and like a factory its output is still spot-checked: the person validates the application, not each test, by using it and checking what it produces.<\/p>\n<p>Whatever a spot check finds wrong becomes a new item with a new clause, so each gap is caught once and stays caught. The checks the person keeps repeating can further become clauses, in turn automating the monitoring itself. That leaves a natural role for engineers: inspectors of the factory, asking how its agents could be wrong or lying, and turning each answer into a new constraint of the same kind.<\/p>\n<p>This is called <em>ordinal software engineering<\/em>, named for its orders: agents build the software in the first order, and engineers build and inspect the factory in the second. Agents are temporary; the order they work inside persists and owns the work. In essence, software development becomes more about building the machinery around the machine. The method herein is the piece that turns agent work into proof that it meets the person's bar; whether that proof is enough stays the person's judgement.<\/p>\n<figure><img src=\"../diagrams/7-ordinal.svg\" alt=\"Ordinal software engineering\"><figcaption>Ordinal software engineering<\/figcaption><\/figure>\n<h2 id=\"8-what-correct-means\"><span class=\"num\">8.<\/span> What correct means<\/h2>\n<p>Correct cannot mean perfect, nor complete. Code can be free of technical error and still wrong in intent, and intent is only ever as precise as the request, which no one can make perfectly specific. The method makes the work correct to intent: faithful to what was asked, and then held to a stated testing standard.<\/p>\n<p>Requests leave openings, as laws do. No legislator anticipates every case; when one falls through, a judge interprets and the law is amended, and here the amendment is a new clause. A test faithful to the request but silent on a case it never named is not a failure of the method; it is the request asking to be sharpened. A bug that survives the tests is a misread clause, a weak test, or behaviour nobody defined. The first two are fixed by sharpening the test; for the last, the solution is simple: define it.<\/p>\n<p>Agents can be trusted to write the tests because of the process around them: each test is written first, by an agent other than the builder, then frozen, and must fail before the change and pass after it (Sections 2 and 3). So the real question is the standard the tests are held to. For example: every part of a clause has a case that fails without it, and the machine enforces this on every item. Once it does, agents can develop autonomously: the person sets the bar and the standard, and no one has to watch the work in between.<\/p>\n<p>No testing standard catches every edge case; each one found sharpens the bar for everything after it. Agents lower the cost of the surface of software, but not of its depth, which is experience: the edge cases found and closed over time, which become the edge of whoever holds them.<\/p>\n<h2 id=\"9-implementation-and-evidence\"><span class=\"num\">9.<\/span> Implementation and evidence<\/h2>\n<p>Pullboard (<a href=\"https://pullboard.dev\">pullboard.dev<\/a>) implements a form of the method: a board that agents claim work from, build against and submit to, where items of work land only when its rules and configuration allow.<\/p>\n<figure><img src=\"../diagrams/5-whole-machine.svg\" alt=\"The whole machine\"><figcaption>The whole machine<\/figcaption><\/figure>\n<p>Around the proof, Pullboard adds the rest of the machinery: objectives decide what comes first, a speed-versus-certainty setting decides when proof happens, and capacity decides how hard the factory runs.<\/p>\n<p>A reference implementation sits beside this paper. <a href=\"../proven.js\">proven.js<\/a>, about 280 lines of code, holds the hashing, the checks, the record and the moves; <a href=\"../verify.js\">verify.js<\/a>, about 90 lines of code and written separately, re-derives every verdict from the record. It shows the core rule in miniature; hashing every input a test reads, mutation testing, held-out cases, dependencies and signed runners are left out of it. <a href=\"../run.js\">run.js<\/a> plays ten items, an honest one and one for each failure named above. The attached repo also contains a <a href=\"../demo/index.html\">demo/<\/a> with steps to illustrate the process.<\/p>\n<p>The evidence is practice, not a controlled study. Two products built this way are in real use: an options trading system, built with an earlier and coarser form of the method, that trades real money, and then Pullboard itself, which its users use to autonomously develop software. In both, being wrong costs something real.<\/p>\n<h2 id=\"10-related-work\"><span class=\"num\">10.<\/span> Related work<\/h2>\n<p>Pullboard came from building real products with agents, not from the literature. The work below was found afterwards and is complementary reading, not a source, and the list is not exhaustive.<\/p>\n<p>Proof-or-Stop [1] and Agile-V [2] share the starting point of trusting evidence over agents. The individual mechanisms have their own histories: test-driven development [3], mutation testing [4], signed provenance [5, 6], trusting the checker [7], validation versus verification [8], and reliable systems from unreliable parts [10]. This paper claims no priority over any of them; its claim is only that the method, and earlier iterations of it, have built real products.<\/p>\n<h2 id=\"11-conclusion\"><span class=\"num\">11.<\/span> Conclusion<\/h2>\n<p>Agents can run unattended because nothing they say counts as evidence: only frozen tests, results bound to trees, and a signed rule over the record decide what lands. Every verdict against the bar can be re-derived by anyone. The bar is the one judgement left to the person, who keeps it honest the way any factory owner does: by spot-checking the output and turning whatever is wrong into new bars.<\/p>\n<p><em>This paper and its reference code were written with AI assistance.<\/em><\/p>\n<div class=\"refs\"><h2 id=\"references\">References<\/h2>\n<p><span class=\"rnum\">[1]<\/span><span>J. Huang, J. Hsia, J. Sun, F. Shi, W. Huang and I. H. White. &quot;Proof-or-Stop: Don't Trust the Agent, Trust the Evidence -- Loop Engineering for Verifiable Evidence-Gated Lifecycle Control.&quot; arXiv:2607.14890, 2026.<\/span><\/p>\n<p><span class=\"rnum\">[2]<\/span><span>C. Koch. &quot;From Agent Output to Authorized Transition.&quot; arXiv:2609.28216, 2026. (Presents the Agile-V Assurance Spine.)<\/span><\/p>\n<p><span class=\"rnum\">[3]<\/span><span>K. Beck. <em>Test-Driven Development: By Example.<\/em> Addison-Wesley, 2002.<\/span><\/p>\n<p><span class=\"rnum\">[4]<\/span><span>R. A. DeMillo, R. J. Lipton and F. G. Sayward. &quot;Hints on Test Data Selection: Help for the Practicing Programmer.&quot; <em>Computer<\/em> 11(4):34–41, 1978.<\/span><\/p>\n<p><span class=\"rnum\">[5]<\/span><span>OpenSSF. SLSA: Supply-chain Levels for Software Artifacts. <a href=\"https://slsa.dev\">https://slsa.dev<\/a><\/span><\/p>\n<p><span class=\"rnum\">[6]<\/span><span>S. Torres-Arias, H. Afzali, T. K. Kuppusamy, R. Curtmola and J. Cappos. &quot;in-toto: Providing farm-to-table guarantees for bits and bytes.&quot; 28th USENIX Security Symposium, 1393–1410, 2019.<\/span><\/p>\n<p><span class=\"rnum\">[7]<\/span><span>K. Thompson. &quot;Reflections on Trusting Trust.&quot; <em>Communications of the ACM<\/em> 27(8):761–763, 1984.<\/span><\/p>\n<p><span class=\"rnum\">[8]<\/span><span>B. W. Boehm. &quot;Verifying and Validating Software Requirements and Design Specifications.&quot; <em>IEEE Software<\/em> 1(1):75–88, 1984.<\/span><\/p>\n<p><span class=\"rnum\">[9]<\/span><span>J. C. Knight and N. G. Leveson. &quot;An Experimental Evaluation of the Assumption of Independence in Multiversion Programming.&quot; <em>IEEE Transactions on Software Engineering<\/em> SE-12(1):96–109, 1986.<\/span><\/p>\n<p><span class=\"rnum\">[10]<\/span><span>J. von Neumann. &quot;Probabilistic Logics and the Synthesis of Reliable Organisms from Unreliable Components.&quot; In C. E. Shannon and J. McCarthy (eds.), <em>Automata Studies<\/em>, Annals of Mathematics Studies 34, 43–98. Princeton University Press, 1956.<\/span><\/p><\/div>"/* PAPER END */;
+
+// LICENSE as HTML, written by demo/trace.js
+const LICENSE = /* LICENSE START */"<h1>MIT License<\/h1>\n<p>Copyright (c) 2026 Corey Olson<\/p>\n<p>Permission is hereby granted, free of charge, to any person obtaining a copy of this software and associated documentation files (the &quot;Software&quot;), to deal in the Software without restriction, including without limitation the rights to use, copy, modify, merge, publish, distribute, sublicense, and/or sell copies of the Software, and to permit persons to whom the Software is furnished to do so, subject to the following conditions:<\/p>\n<p>The above copyright notice and this permission notice shall be included in all copies or substantial portions of the Software.<\/p>\n<p>THE SOFTWARE IS PROVIDED &quot;AS IS&quot;, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY, FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.<\/p>"/* LICENSE END */;
+
+// The groups in reading order: honest work, then what Pullboard catches, then what only you can
+const GROUPS = ['Honest Work', 'Cheating Agents', 'Honest Mistakes', 'Bad Human Judgement'];
+
+// Each actor's badge colour, by what it is on the board: you rule, translators draft the bar, the back-translator and the comparer read it back and compare, agents build and review, Pullboard gates, the record keeps, the checker re-checks
+const CHIP = { 'You': 'you', 'Coordinator': 'coord', 'Translator': 'coord', 'Second translator': 'coord', 'Back-translator': 'back2', 'Comparer': 'back2', 'Agent': 'agent', 'Second agent': 'second', 'Pullboard': 'pullboard', 'The record': 'record', 'The checker': 'checker' };
+
+// How long each step stays before the next, and the verdict's longer beat, and the pause before the next item
+const PACE = { step: 1400, verdict: 1800, between: 3000 };
+
+// Items play in the order the list shows them, not run.js's order
+const ORDER = GROUPS.flatMap((group) => TRACE.map((item, i) => (item.group === group ? i : -1)).filter((i) => i >= 0));
+
+// A reader who asked for less motion sees each item whole, with no fade
+const REDUCE = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+// One small icon per check state, so a state reads without relying on colour alone
+const ICON = {
+    pending: '<svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7" stroke-dasharray="3 3"/></svg>',
+    pass: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M5 12l4 4 10-10"/></svg>',
+    fail: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 6l12 12M18 6L6 18"/></svg>',
+    gap: '<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M12 4l9 16H3z"/><path d="M12 10v4M12 17v.5"/></svg>',
+    lock: '<svg viewBox="0 0 24 24" aria-hidden="true"><rect x="5" y="11" width="14" height="9" rx="1.5"/><path d="M8 11V8a4 4 0 0 1 8 0v3"/></svg>',
+};
+
+// The word shown beside each check state
+const STATE = { pending: 'pending', pass: 'pass', fail: 'fail', gap: 'never asked' };
+
+// The word on a receipt that is not as the board wrote it
+const MARK = { edited: 'edited', forged: 'fake', rewritten: 're-hashed', broken: 'broken' };
+
+// The page's one DOM lookup, kept short because every function uses it
+const $ = (id) => document.getElementById(id);
+
+// Which item is showing, by its place in run.js
+let itemAt = ORDER[0];
+
+// How many of its steps are showing, counting the verdict as the last
+let shown = 1;
+
+// Whether the demo plays by itself
+let playing = true;
+
+// The pending step or move, so any manual action can cancel it
+let timer = null;
+
+// Watches which paper section is in view, so it can be replaced when the paper is drawn again
+let spy = null;
+
+/**
+ * Escape text for innerHTML, then turn `hash` marks into code.
+ * Why: the lines are plain text from trace.js, and only the backtick marks may become markup.
+ *
+ * @param {string} text - A line.
+ * @returns {string} Safe HTML.
+ */
+function html(text) {
+
+    // The four characters HTML reads specially are escaped first, so nothing in a line can become markup
+    const safe = String(text).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
+
+    // A marked hash is shown muted, in monospace
+    return safe.replace(/`([^`]+)`/g, '<code>$1</code>');
+}
+
+/**
+ * The steps of one item as list rows, up to a count.
+ * Why: drawing and measuring both need the same rows.
+ *
+ * @param {object} item - The item.
+ * @param {number} count - How many steps, the verdict counting as the last.
+ * @param {boolean} fadeLast - Whether the newest row fades in.
+ * @returns {string} The rows' HTML.
+ */
+function rowsOf(item, count, fadeLast) {
+
+    // The steps so far: the actor's badge, then one short line, so the sentences line up
+    const rows = item.lines.slice(0, count).map(([actor, text], i) => `<li class="step"><span class="n">${i + 1}</span><span class="chip ${CHIP[actor]}">${html(actor)}</span><span class="t">${html(text)}</span></li>`);
+
+    // The verdict joins only after every step before it, in its stage colour
+    if (count > item.lines.length) rows.push(`<li class="step verdict ${item.verdict[0]}"><span class="n">${count}</span><span class="dot ${item.verdict[0]}"></span><span class="t">${html(item.verdict[1])}</span></li>`);
+
+    // Only the row just added moves, so the eye goes to it
+    if (fadeLast && rows.length) rows[rows.length - 1] = rows[rows.length - 1].replace('class="step', 'class="step enter');
+
+    // One string for innerHTML
+    return rows.join('');
+}
+
+/**
+ * Hold the steps panel at the height of the longest item.
+ * Why: the controls sit under the panel, and they must not jump as lines appear.
+ */
+function fitHeight() {
+
+    // The panel measured from its natural height
+    $('steps').style.minHeight = '';
+
+    // The tallest item, drawn whole, at the current width
+    const tallest = Math.max(...TRACE.map((item) => {
+
+        // Every row of this item
+        $('steps').innerHTML = rowsOf(item, item.lines.length + 1, false);
+
+        // Its height at this width, since lines wrap on a phone
+        return $('steps').offsetHeight;
+    }));
+
+    // Every item now fits without the panel growing
+    $('steps').style.minHeight = `${tallest}px`;
+
+    // Back to what was showing
+    render(false);
+}
+
+/**
+ * The bar as chips: each clause, its lock and fingerprint, red when its test was changed.
+ * Why: the demo and the mechanism show the bar the same way.
+ *
+ * @param {Array[]} bars - [id, clause, fingerprint] for each bar frozen so far.
+ * @param {Array} [bad] - [id, fingerprint] when a bar's test was changed on the submitted code.
+ * @returns {string} The chips' HTML, or a quiet line before anything is frozen.
+ */
+function barHtml(bars, bad) {
+
+    // Before the freeze there is nothing to show
+    if (!bars.length) return '<span class="empty">Nothing frozen yet.</span>';
+
+    // One chip per bar
+    return bars.map(([id, text, hash]) => {
+
+        // Whether this bar's test was changed on the submitted code
+        const changed = bad && bad[0] === id;
+
+        // The clause, the lock, and its fingerprint, or the changed one beside it
+        return `<div class="bar${changed ? ' bad' : ''}"><b>${html(id)}</b><span>${html(text)}</span><span class="lock">${changed ? ICON.fail : ICON.lock}${changed ? 'changed' : 'frozen'}</span><code>${html(hash)}${changed ? ` → ${html(bad[1])}` : ''}</code></div>`;
+    }).join('');
+}
+
+/**
+ * The checks as chips: icon and short word, the full question as the tooltip.
+ * Why: the demo and the mechanism show the checks the same way.
+ *
+ * @param {Array[]} checks - [question, state, short word] for each check.
+ * @returns {string} The chips' HTML, or a quiet line before there is code to check.
+ */
+function checksHtml(checks) {
+
+    // Nothing is checked before there is code
+    if (!checks.length) return '<span class="empty">Nothing to check yet.</span>';
+
+    // One chip per check, coloured by its state
+    return checks.map(([label, state, word]) => `<span class="ck ${state}" title="${html(label)}: ${STATE[state]}">${ICON[state]}${html(word)}</span>`).join('');
+}
+
+/**
+ * The board's record as a strip of receipt cards with arrows between them.
+ * Why: the demo and the mechanism show the record the same way.
+ *
+ * @param {Array[]} receipts - Cards: number, signer, fact, hash, previous hash.
+ * @param {number} fresh - Receipts from this number on are new.
+ * @param {object} marks - Receipt number to edited, forged, rewritten or broken.
+ * @returns {string} The strip's HTML, or a quiet line before anything is recorded.
+ */
+function recordHtml(receipts, fresh, marks) {
+
+    // Before the genesis there is nothing to show
+    if (!receipts.length) return '<span class="empty">No receipts yet.</span>';
+
+    // One card per receipt, an arrow between each, red where the chain breaks
+    return receipts.map(([n, who, fact, hash, prev], i) => {
+
+        // How this receipt fared
+        const mark = marks[n];
+
+        // A broken or changed receipt is tinted red; a new one gets a ring in its signer's colour
+        const kind = mark === 'broken' ? 'broken' : mark ? 'altered' : n >= fresh ? 'new' : '';
+
+        // The arrow into a broken receipt is broken too, except the last, where only the head differs
+        const arrow = i ? `<span class="arrow${mark === 'broken' && i < receipts.length - 1 ? ' bad' : ''}" aria-hidden="true">→</span>` : '';
+
+        // An altered receipt says how in place of its signer
+        const top = mark ? `<span class="mk">${MARK[mark]}</span>` : `<span>${html(who)}</span>`;
+
+        // Three short lines: number and signer, the fact, its hash and the hash it links to
+        return `${arrow}<div class="rc ${kind} ${CHIP[who] || ''}" title="#${n} by ${html(who)}: ${html(fact)}"><span class="rn">#${n}${top}</span><span>${html(fact)}</span><span class="hl">${html(hash)} → ${html(prev)}</span></div>`;
+    }).join('');
+}
+
+/**
+ * The record's count and head, which is what you hold.
+ * Why: both views label the strip the same way.
+ *
+ * @param {Array[]} receipts - The cards shown.
+ * @returns {string} The label's HTML, empty before anything is recorded.
+ */
+function recordMeta(receipts) {
+
+    // The head is the last receipt's hash
+    return receipts.length ? `${receipts.length} receipts, head <code>${html(receipts[receipts.length - 1][3])}</code>` : '';
+}
+
+/**
+ * Scroll a record strip so the receipt worth seeing shows.
+ * Why: a new or broken receipt can land beyond the strip's edge, and only the strip may scroll, never the page.
+ *
+ * @param {Element} strip - The strip.
+ * @param {boolean} fromStart - True when a new item or step begins, so the strip opens at its left edge.
+ * @param {boolean} smooth - Whether to scroll smoothly.
+ */
+function reveal(strip, fromStart, smooth) {
+
+    // A new start opens at the left edge, so the first receipts are seen whole
+    if (fromStart) strip.scrollLeft = 0;
+
+    // The receipt worth seeing: the broken one, else the newest, else the last
+    const target = strip.querySelector('.rc.broken') || [...strip.querySelectorAll('.rc.new, .rc.altered')].pop() || strip.querySelector('.rc:last-child');
+
+    // An empty strip has nothing to scroll to
+    if (!target) return;
+
+    // Where the strip and the target sit on screen
+    const [box, card] = [strip.getBoundingClientRect(), target.getBoundingClientRect()];
+
+    // Right to bring in a new receipt, or left to bring back an earlier one
+    const by = card.right > box.right ? card.right - box.right + 4 : card.left < box.left ? card.left - box.left - 4 : 0;
+
+    // Not at all when the target already shows
+    if (by) strip.scrollTo({ left: Math.max(0, strip.scrollLeft + by), behavior: smooth && !REDUCE ? 'smooth' : 'auto' });
+}
+
+/**
+ * Draw the bar, the checks and the board's record as they stand at the step showing.
+ * Why: the steps say what happens; these panels show the machinery that makes it so, step for step.
+ *
+ * @param {object} item - The item showing.
+ * @param {boolean} smooth - Whether the record scrolls smoothly to its newest receipt.
+ */
+function drawMachine(item, smooth) {
+
+    // The snapshot for the step showing; the verdict has the last one
+    const now = item.machine.steps[shown - 1];
+
+    // The step before, to tell which receipts are new
+    const before = item.machine.steps[shown - 2];
+
+    // The bars frozen so far, red where a test was changed
+    $('bar').innerHTML = barHtml(item.machine.bars.slice(0, now.b), now.bad);
+
+    // The checks as they stand
+    $('checks').innerHTML = checksHtml(now.c);
+
+    // Ties the panels to the step they show
+    $('atstep').textContent = `· after step ${shown}`;
+
+    // The record this step shows: the board's own, or one of the forged copies
+    const receipts = item.machine.records[now.rec || 0].slice(0, now.r);
+
+    // Receipts this step added are new, unless the step switched to another copy
+    const fresh = before && (before.rec || 0) === (now.rec || 0) ? before.r : now.r;
+
+    // The cards, marked where altered
+    $('strip').innerHTML = recordHtml(receipts, fresh, now.m || {});
+
+    // The count and the head
+    $('recmeta').innerHTML = recordMeta(receipts);
+
+    // The newest or broken receipt comes into view
+    reveal($('strip'), shown === 1, smooth);
+}
+
+/**
+ * Draw the item list's selection, the steps so far, and the controls.
+ * Why: one function draws everything, so the list, the steps and the buttons never disagree.
+ *
+ * @param {boolean} fade - Whether the newest step fades in.
+ */
+function render(fade) {
+
+    // The item showing
+    const item = TRACE[itemAt];
+
+    // Only the selected row is marked
+    document.querySelectorAll('.item').forEach((row) => row.setAttribute('aria-current', String(+row.dataset.i === itemAt)));
+
+    // The steps so far
+    $('steps').innerHTML = rowsOf(item, shown, fade && !REDUCE);
+
+    // The machinery behind them, in step
+    drawMachine(item, fade);
+
+    // Back stops at the first step
+    $('back').disabled = shown === 1;
+
+    // Forward stops at the verdict
+    $('next').disabled = shown === item.lines.length + 1;
+
+    // The button says what pressing it does
+    $('play').textContent = playing ? 'Pause' : 'Play';
+}
+
+/**
+ * Wait, then show the next step, or move to the next item when this one is done.
+ * Why: the demo plays by itself, one step at a time, and loops through every item.
+ */
+function schedule() {
+
+    // Only one step is ever pending
+    clearTimeout(timer);
+
+    // Nothing plays while paused or while the paper or license is open
+    if (!playing || !$('reader').hidden) return;
+
+    // The verdict is the last step
+    const total = TRACE[itemAt].lines.length + 1;
+
+    // A finished item rests, then the next one in the list starts, looping after the last
+    if (shown >= total) timer = setTimeout(() => select(ORDER[(ORDER.indexOf(itemAt) + 1) % ORDER.length]), PACE.between);
+
+    // Otherwise the next step, with a longer beat before the verdict
+    else timer = setTimeout(() => {
+
+        // One more step
+        shown += 1;
+
+        // It fades in
+        render(true);
+
+        // And the next one waits
+        schedule();
+    }, shown + 1 === total ? PACE.verdict : PACE.step);
+}
+
+/**
+ * Start an item from its first step.
+ * Why: picking an item, and the loop moving on, both start it the same way.
+ *
+ * @param {number} i - The item, by its place in run.js.
+ */
+function select(i) {
+
+    // The item chosen
+    itemAt = i;
+
+    // From its first step, or whole when the reader asked for less motion
+    shown = REDUCE ? TRACE[i].lines.length + 1 : 1;
+
+    // Draw it
+    render(true);
+
+    // And play on from there
+    schedule();
+}
+
+/**
+ * Step by hand, which pauses the play.
+ * Why: a reader who steps wants to read at their own pace.
+ *
+ * @param {number} by - +1 forward, -1 back.
+ */
+function step(by) {
+
+    // Stepping by hand stops the play
+    playing = false;
+
+    // Nothing pending
+    clearTimeout(timer);
+
+    // Held between the first step and the verdict
+    shown = Math.max(1, Math.min(shown + by, TRACE[itemAt].lines.length + 1));
+
+    // Only a forward step fades in
+    render(by > 0);
+}
+
+/**
+ * Pause the play, or play on from where it is.
+ * Why: one button does both, and its label says which.
+ */
+function toggle() {
+
+    // Flip it
+    playing = !playing;
+
+    // The label follows
+    render(false);
+
+    // Playing again picks up from the current step
+    schedule();
+}
+
+/**
+ * Build the paper's contents list and mark the section in view.
+ * Why: the paper is long, so a quiet list on the side shows where the reader is and jumps to any section.
+ */
+function contents() {
+
+    // The abstract, every section heading and every subsection heading, in reading order
+    const targets = [...$('doc').querySelectorAll('#abstract, h2[id], h3[id]')];
+
+    // One link per section; the abstract has no heading of its own, so it is named
+    $('toc').innerHTML = '<p class="lbl">Contents</p>' + targets.map((el) => `<a href="#whitepaper/${el.id}" data-id="${el.id}"${el.tagName === 'H3' ? ' class="sub"' : ''}><span>${el.id === 'abstract' ? 'Abstract' : html(el.textContent)}</span></a>`).join('');
+
+    // Older watchers would mark sections of a paper no longer drawn
+    if (spy) [spy, spy.footer].forEach((watcher) => watcher.disconnect());
+
+    // Which section is current is worked out from positions each time, so it is right on open and in either direction; the observers only say when to look
+    const mark = () => {
+
+        // The band the reader's eye sits in: the top quarter of the window
+        const band = window.innerHeight * 0.25;
+
+        // At the very bottom the last sections cannot reach the band, so the last one counts as current
+        const atEnd = window.innerHeight + window.scrollY >= document.documentElement.scrollHeight - 4;
+
+        // The last section whose start has reached the band, or the first one before any has
+        const current = atEnd ? targets.length - 1 : Math.max(0, targets.reduce((last, el, i) => (el.getBoundingClientRect().top <= band ? i : last), -1));
+
+        // Only the section in view is marked
+        $('toc').querySelectorAll('a').forEach((link, i) => link.setAttribute('aria-current', String(i === current)));
+    };
+
+    // Section starts crossing the top quarter of the window
+    spy = new IntersectionObserver(mark, { rootMargin: '0px 0px -75% 0px' });
+
+    // Every section's start is watched
+    targets.forEach((el) => spy.observe(el));
+
+    // The footer coming into view anywhere means the bottom, where the last sections never reach the top quarter
+    spy.footer = new IntersectionObserver(mark);
+
+    // Watched for as long as this paper is drawn
+    spy.footer.observe(document.querySelector('.foot'));
+}
+
+// The mechanism's cases, written in demo/trace.js with each frozen test's real fingerprint; illustrations, not runs of proven.js
+const MECH = /* MECH START */[{"name":"Faithful translation","group":"Back-translation","dot":"landed","word":"Frozen","verdict":["landed","Match: frozen as the bar, without you"],"steps":[["You","ask: \"Total the cart, rounded to the nearest cent.\"",{"request":"Total the cart, rounded to the nearest cent."}],["Translator","writes a test: total([1.005, 2]) is 3.01.",{"tests":[["total([1.005, 2]) is 3.01","draft"]]}],["Back-translator","sees only the test, and says what it checks.",{"quote":"Adds the prices and rounds half up to two decimals."}],["Pullboard","hands the request and the words back to the Comparer.",{"checks":[["With the Comparer","pending"]]}],["Comparer","finds they say the same thing.",{"checks":[["Match","pass"]]}],["Pullboard","freezes the test as the bar.",{"tests":[["total([1.005, 2]) is 3.01","frozen","ce424f2"]]}]]},{"name":"Misread, caught","group":"Back-translation","dot":"landed","word":"Re-translated","verdict":["landed","Mismatch caught, re-translated, frozen without you"],"steps":[["You","ask: \"Total the cart, rounded to the nearest cent.\"",{"request":"Total the cart, rounded to the nearest cent."}],["Translator","writes a test: total([1.005, 2]) is 3.00.",{"tests":[["total([1.005, 2]) is 3.00","draft"]]}],["Back-translator","sees only the test, and says what it checks.",{"quote":"Adds the prices and cuts off after two decimals."}],["Comparer","finds \"cuts off\" does not match \"rounded to the nearest cent\".",{"rows":[["1.005 and 2","3.00, not 3.01","bad"]],"checks":[["Mismatch","gap"]]}],["Translator","starts fresh and writes the test again: total([1.005, 2]) is 3.01.",{"tests":[["total([1.005, 2]) is 3.01","draft"]],"quote":"","checks":[["Re-translating","pending"]]}],["Back-translator","says what the new test checks.",{"quote":"Adds the prices and rounds half up to two decimals."}],["Comparer","finds the request and the words back now match.",{"rows":[["1.005 and 2","3.01","ok"]],"checks":[["Match","pass"]]}],["Pullboard","freezes the test as the bar.",{"tests":[["total([1.005, 2]) is 3.01","frozen","ce424f2"]]}]]},{"name":"Examples","group":"Other checks","dot":"landed","word":"Re-translated","verdict":["landed","Wrong example caught, re-translated, frozen"],"steps":[["You","ask: \"Total the cart, rounded to the nearest cent.\"",{"request":"Total the cart, rounded to the nearest cent."}],["Translator","writes a test with three cases.",{"tests":[["total: three cases","draft"]],"rows":[["1 and 2","3.00","ok"],["0.5 and 0.25","0.75","ok"],["1.005 and 2","3.00","ok"]]}],["Pullboard","shows each case to the Comparer as input and expected output.",{"checks":[["With the Comparer","pending"]]}],["Comparer","spots that 1.005 and 2 should be 3.01 by the request.",{"rows":[["1 and 2","3.00","ok"],["0.5 and 0.25","0.75","ok"],["1.005 and 2","3.00, not 3.01","bad"]],"checks":[["1 case wrong","gap"]]}],["Translator","starts fresh and writes the cases again.",{"rows":[["1 and 2","3.00","ok"],["0.5 and 0.25","0.75","ok"],["1.005 and 2","3.01","ok"]],"checks":[["Re-translating","pending"]]}],["Comparer","finds every case matches the request. The test is frozen.",{"tests":[["total: three cases","frozen","4daeacf"]],"checks":[["Match","pass"]]}]]},{"name":"Two translators","group":"Other checks","dot":"landed","word":"Frozen","verdict":["landed","The reading that matches the request is frozen"],"steps":[["You","ask: \"Total the cart, rounded to the nearest cent.\"",{"request":"Total the cart, rounded to the nearest cent."}],["Translator","writes test A: total([1.005, 2]) is 3.01.",{"tests":[["A: total([1.005, 2]) is 3.01","draft"]]}],["Second translator","writes test B on its own: total([1.005, 2]) is 3.00.",{"tests":[["A: total([1.005, 2]) is 3.01","draft"],["B: total([1.005, 2]) is 3.00","draft"]]}],["Pullboard","runs both, finds they differ at 1.005 and 2, and asks the Comparer.",{"rows":[["1.005 and 2","A 3.01, B 3.00","bad"]],"checks":[["Disagree","gap"]]}],["Comparer","finds A matches \"rounded to the nearest cent\"; B does not.",{"checks":[["A matches","pass"],["B dropped","fail"]]}],["Pullboard","freezes test A and drops test B.",{"tests":[["A: total([1.005, 2]) is 3.01","frozen","57a5e93"]],"rows":[]}]]},{"name":"Adversarial builder","group":"Other checks","dot":"landed","word":"Strengthened","verdict":["landed","Weak test caught, strengthened, then frozen"],"steps":[["You","ask: \"Total the cart, rounded to the nearest cent.\"",{"request":"Total the cart, rounded to the nearest cent."}],["Translator","writes a test that only checks whole numbers: total([1, 2]) is 3.",{"tests":[["total([1, 2]) is 3","draft"]]}],["Agent","tries to break it: code that adds, then drops the cents.",{"quote":"Code: add the prices, then drop everything after the point."}],["Pullboard","finds the test passes that code, but the request fails it.",{"checks":[["Test passes","gap"],["Request fails: 1.005 and 2 give 3","fail"]]}],["Translator","strengthens the test: total([1.005, 2]) is 3.01. It is frozen.",{"tests":[["total([1, 2]) is 3","frozen","0fa58a0"],["total([1.005, 2]) is 3.01","frozen","ce424f2"]],"checks":[["Breaking code now fails","pass"]]}]]},{"name":"Your own cases","group":"Other checks","dot":"landed","word":"Frozen","verdict":["landed","Your words are the test: frozen as written"],"steps":[["You","write a case yourself: given 1.005 and 2, expect 3.01.",{"request":"Given 1.005 and 2, expect 3.01."}],["Pullboard","takes it into the bar exactly as written.",{"tests":[["total([1.005, 2]) is 3.01","frozen","ce424f2"]]}],["Pullboard","has nothing to translate: the words and the test are both yours.",{"checks":[["Nothing to translate","pass"]]}]]},{"name":"Truly ambiguous","group":"Reaches you","dot":"gap","word":"Waits for you","verdict":["gap","Waits as a ruling: round or drop the cents?"],"steps":[["You","ask: \"Show the total in whole dollars.\"",{"request":"Show the total in whole dollars."}],["Translator","writes test A, rounding: total([3.50]) is 4.",{"tests":[["A: total([3.50]) is 4","draft"]]}],["Second translator","writes test B, dropping the cents: total([3.50]) is 3.",{"tests":[["A: total([3.50]) is 4","draft"],["B: total([3.50]) is 3","draft"]]}],["Pullboard","runs both: at 3.50 they give 4 and 3.",{"rows":[["3.50","A 4, B 3","bad"]],"checks":[["Disagree","gap"]]}],["Comparer","finds both readings fit \"whole dollars\", so it cannot pick.",{"checks":[["Both fit","gap"],["Cannot settle","gap"]]}],["Pullboard","files it as a ruling for you to answer whenever you next look.",{"checks":[["Waits as a ruling","gap"]]}]]}]/* MECH END */;
+
+// The list's three groups, in order; the last holds the only path that reaches you
+const MGROUPS = ['Back-translation', 'Other checks', 'Reaches you'];
+
+// Cases play in the order the list shows them
+const MORDER = MGROUPS.flatMap((group) => MECH.map((one, i) => (one.group === group ? i : -1)).filter((i) => i >= 0));
+
+// Which case is showing
+let mAt = MORDER[0];
+
+// How many of its steps are showing, counting the verdict as the last
+let mShown = 1;
+
+// Whether the mechanism plays by itself
+let mPlaying = true;
+
+// The pending step or move, so a manual action can cancel it
+let mTimer = null;
+
+/**
+ * What the machine sees after a number of a case's steps: each step changes only what it names, the rest carries on.
+ * Why: the right-hand panels show the state at the step showing, built up step by step.
+ *
+ * @param {object} one - The case.
+ * @param {number} count - How many steps have happened; the verdict adds nothing.
+ * @returns {object} request, tests, rows, quote and checks as they stand.
+ */
+function mState(one, count) {
+
+    // Everything starts empty
+    const state = { request: '', tests: [], rows: [], quote: '', checks: [] };
+
+    // Each step overwrites only what it names
+    one.steps.slice(0, count).forEach(([, , see]) => Object.assign(state, see));
+
+    // The state at this step
+    return state;
+}
+
+/**
+ * The steps of one case as list rows, up to a count, in the home demo's row style.
+ * Why: drawing and measuring both need the same rows.
+ *
+ * @param {object} one - The case.
+ * @param {number} count - How many steps, the verdict counting as the last.
+ * @param {boolean} fadeLast - Whether the newest row fades in.
+ * @returns {string} The rows' HTML.
+ */
+function mRows(one, count, fadeLast) {
+
+    // Number, badge, one short line
+    const rows = one.steps.slice(0, count).map(([actor, line], i) => `<li class="step"><span class="n">${i + 1}</span><span class="chip ${CHIP[actor]}">${html(actor)}</span><span class="t">${html(line)}</span></li>`);
+
+    // The verdict joins only after every step, green when the translation held and amber when it went back to you
+    if (count > one.steps.length) rows.push(`<li class="step verdict ${one.verdict[0]}"><span class="n">${count}</span><span class="dot ${one.verdict[0]}"></span><span class="t">${html(one.verdict[1])}</span></li>`);
+
+    // Only the row just added moves
+    if (fadeLast && rows.length) rows[rows.length - 1] = rows[rows.length - 1].replace('class="step', 'class="step enter');
+
+    // One string for innerHTML
+    return rows.join('');
+}
+
+/**
+ * Hold the steps panel at the height of the longest case.
+ * Why: the controls sit under it, and they must not jump as lines appear.
+ */
+function mFit() {
+
+    // Measured from its natural height
+    $('msteps').style.minHeight = '';
+
+    // The tallest case, drawn whole, at the current width
+    const tallest = Math.max(...MECH.map((one) => {
+
+        // Every row of this case
+        $('msteps').innerHTML = mRows(one, one.steps.length + 1, false);
+
+        // Its height at this width
+        return $('msteps').offsetHeight;
+    }));
+
+    // Every case now fits without the panel growing
+    $('msteps').style.minHeight = `${tallest}px`;
+}
+
+/**
+ * Draw the list's selection, the case's steps so far, and what the machine sees at that step.
+ * Why: one function draws the whole mechanism, so its parts never disagree.
+ *
+ * @param {boolean} fade - Whether the newest step fades in.
+ */
+function mDraw(fade) {
+
+    // The case showing
+    const one = MECH[mAt];
+
+    // Only the selected row is marked
+    document.querySelectorAll('.mitem').forEach((row) => row.setAttribute('aria-current', String(+row.dataset.m === mAt)));
+
+    // The steps so far
+    $('msteps').innerHTML = mRows(one, mShown, fade && !REDUCE);
+
+    // The machine's view after those steps
+    const state = mState(one, mShown);
+
+    // Ties the panels to the step they show
+    $('mat').textContent = `· after step ${mShown}`;
+
+    // Your words, in the purple of everything that is yours
+    $('mreq').innerHTML = state.request ? `<div class="ask">${html(state.request)}</div>` : '<span class="empty">Nothing asked yet.</span>';
+
+    // Each test: grey while a draft, the bar's purple with its lock and fingerprint once frozen
+    const tests = state.tests.map(([text, kind, fp]) => (kind === 'frozen' ? `<div class="bar"><code>${html(text)}</code><span class="lock">${ICON.lock}frozen</span><span class="fp">${html(fp)}</span></div>` : `<div class="bar draft"><code>${html(text)}</code><span class="lock">not yet frozen</span></div>`)).join('');
+
+    // Each example as input, expected output, and whether it is right
+    const rows = state.rows.map(([input, expected, kind]) => `<div class="mrow ${kind}"><span>${html(input)}</span><span>→</span><span>${html(expected)}</span>${kind === 'bad' ? ICON.fail : ICON.pass}</div>`).join('');
+
+    // The test panel, or a quiet line before one exists
+    $('mtest').innerHTML = tests + rows || '<span class="empty">No test yet.</span>';
+
+    // Says whether the test is still a draft or already the bar
+    $('mtestmeta').textContent = !state.tests.length ? '' : state.tests.every(([, kind]) => kind === 'frozen') ? 'frozen' : 'not yet frozen';
+
+    // The words read back from the test, then the result chips
+    const check = (state.quote ? `<p class="quote">${html(state.quote)}</p>` : '') + (state.checks.length ? `<div class="chips">${state.checks.map(([word, kind]) => `<span class="ck ${kind}">${ICON[kind]}${html(word)}</span>`).join('')}</div>` : '');
+
+    // The check panel, or a quiet line before anything is checked
+    $('mcheck').innerHTML = check || '<span class="empty">Nothing checked yet.</span>';
+
+    // Back stops at the first step
+    $('mback').disabled = mShown === 1;
+
+    // Forward stops at the verdict
+    $('mnext').disabled = mShown === one.steps.length + 1;
+
+    // The button says what pressing it does
+    $('mplay').textContent = mPlaying ? 'Pause' : 'Play';
+}
+
+/**
+ * Wait, then show the next step, or move to the next case when this one is done.
+ * Why: the mechanism plays by itself and loops through every case, like the home demo.
+ */
+function mSchedule() {
+
+    // Only one step is ever pending
+    clearTimeout(mTimer);
+
+    // Nothing plays while paused or while another view shows
+    if (!mPlaying || $('mech').hidden) return;
+
+    // The verdict is the last step
+    const total = MECH[mAt].steps.length + 1;
+
+    // A finished case rests, then the next one starts, looping after the last
+    if (mShown >= total) mTimer = setTimeout(() => mSelect(MORDER[(MORDER.indexOf(mAt) + 1) % MORDER.length]), PACE.between);
+
+    // Otherwise the next step, with a longer beat before the verdict
+    else mTimer = setTimeout(() => {
+
+        // One more step
+        mShown += 1;
+
+        // It fades in
+        mDraw(true);
+
+        // And the next one waits
+        mSchedule();
+    }, mShown + 1 === total ? PACE.verdict : PACE.step);
+}
+
+/**
+ * Start a case from its first step.
+ * Why: picking a case, and the loop moving on, both start it the same way.
+ *
+ * @param {number} i - The case, by its place in MECH.
+ */
+function mSelect(i) {
+
+    // The case chosen
+    mAt = i;
+
+    // From its first step, or whole when the reader asked for less motion
+    mShown = REDUCE ? MECH[i].steps.length + 1 : 1;
+
+    // Draw it
+    mDraw(true);
+
+    // And play on from there
+    mSchedule();
+}
+
+/**
+ * Step the mechanism by hand, which pauses the play.
+ * Why: a reader who steps wants to read at their own pace.
+ *
+ * @param {number} by - +1 forward, -1 back.
+ */
+function mStep(by) {
+
+    // Stepping by hand stops the play
+    mPlaying = false;
+
+    // Nothing pending
+    clearTimeout(mTimer);
+
+    // Held between the first step and the verdict
+    mShown = Math.max(1, Math.min(mShown + by, MECH[mAt].steps.length + 1));
+
+    // Only a forward step fades in
+    mDraw(by > 0);
+}
+
+/**
+ * Pause the mechanism, or play on from where it is.
+ * Why: one button does both, and its label says which.
+ */
+function mToggle() {
+
+    // Flip it
+    mPlaying = !mPlaying;
+
+    // The label follows
+    mDraw(false);
+
+    // Playing again picks up from the current step
+    mSchedule();
+}
+
+/**
+ * Show the demo, the mechanism, the paper or the license, from the address.
+ * Why: the address names the view, so Back works and a link to a section can be shared.
+ */
+function route() {
+
+    // #mechanism, #whitepaper, #whitepaper/3-one-unit-of-proven-work, #license, or anything else for the demo
+    let [view, section] = location.hash.slice(1).split('/');
+
+    // The mechanism's old address still works
+    if (view === 'how') {
+
+        // Replaced, so Back never lands on the old address
+        history.replaceState(null, '', '#mechanism');
+
+        // And shown as the mechanism
+        view = 'mechanism';
+    }
+
+    // The two reading views
+    const reading = view === 'whitepaper' || view === 'license';
+
+    // The demo is home, reached by the Demo link
+    const home = !reading && view !== 'mechanism';
+
+    // The active nav item names the view, and Demo stands for home
+    document.querySelectorAll('.links a[data-view]').forEach((link) => link.setAttribute('aria-current', String(link.dataset.view === (home ? 'demo' : view))));
+
+    // The demo shows only at home
+    $('demo').hidden = !home;
+
+    // The mechanism shows only on its own view
+    $('mech').hidden = view !== 'mechanism';
+
+    // Its onward links sit under it
+    $('onward').hidden = view !== 'mechanism';
+
+    // The reading surface shows the paper or the license
+    $('reader').hidden = !reading;
+
+    // The demo never plays behind another view
+    clearTimeout(timer);
+
+    // Nor does the mechanism
+    clearTimeout(mTimer);
+
+    // Home: the demo picks up where it left off
+    if (home) {
+
+        // Its panel height is measured again, in case the width changed while it was hidden
+        fitHeight();
+
+        // And it plays on
+        schedule();
+
+        // Nothing more to draw
+        return;
+    }
+
+    // The mechanism: measured, drawn and playing
+    if (view === 'mechanism') {
+
+        // Its card's height, at the current width
+        mFit();
+
+        // The case and step it was on
+        mDraw(false);
+
+        // Plays on from there
+        mSchedule();
+
+        // Opens at the top
+        window.scrollTo(0, 0);
+
+        // Nothing more to draw
+        return;
+    }
+
+    // The document is drawn only when it changes, so the contents watcher is not rebuilt on every section link
+    if ($('doc').dataset.view !== view) {
+
+        // The paper from trace.js, or the license under its small label
+        $('doc').innerHTML = view === 'whitepaper' ? PAPER : `<p class="lbl surface-lbl">License</p>${LICENSE}`;
+
+        // The license gets a smaller title
+        $('doc').className = view;
+
+        // Remembered, to skip redrawing
+        $('doc').dataset.view = view;
+
+        // Only the paper has sections to list
+        if (view === 'whitepaper') contents(); else $('toc').innerHTML = '';
+
+        // The license stands alone, centred, with no contents column
+        $('toc').parentElement.classList.toggle('solo', view !== 'whitepaper');
+    }
+
+    // A linked section opens at that section, anything else at the top
+    const target = section && document.getElementById(section);
+
+    // Jumps, without animation, since the view just opened
+    if (target) target.scrollIntoView(); else window.scrollTo(0, 0);
+}
+
+// One label per group, then one row per item in it: stage dot, name, verdict word
+$('items').innerHTML = GROUPS.map((group) => `<p class="lbl">${html(group)}</p>${TRACE.map((item, i) => (item.group === group ? `<button class="item" type="button" data-i="${i}"><span class="dot ${item.verdict[0]}"></span><span class="name">${html(item.title)}</span><span class="word">${html(item.word)}</span></button>` : '')).join('')}`).join('');
+
+// A row starts its item, playing
+$('items').addEventListener('click', (event) => {
+
+    // The row clicked, if the click was on one
+    const row = event.target.closest('.item');
+
+    // Clicks on a label do nothing
+    if (!row) return;
+
+    // Choosing an item plays it, even if play was paused
+    playing = true;
+
+    // From its first step
+    select(+row.dataset.i);
+});
+
+// A contents link scrolls to its section without adding a history entry, so Back still returns to the demo
+$('toc').addEventListener('click', (event) => {
+
+    // The link clicked, if the click was on one
+    const link = event.target.closest('a');
+
+    // Clicks between links do nothing
+    if (!link) return;
+
+    // The scroll is handled here, smoothly
+    event.preventDefault();
+
+    // The address names the section, so it can be shared
+    history.replaceState(null, '', link.getAttribute('href'));
+
+    // Smooth, unless the reader asked for less motion
+    $(link.dataset.id).scrollIntoView({ behavior: REDUCE ? 'auto' : 'smooth' });
+});
+
+// Back a step
+$('back').addEventListener('click', () => step(-1));
+
+// Forward a step
+$('next').addEventListener('click', () => step(1));
+
+// Pause or play
+$('play').addEventListener('click', toggle);
+
+// In the demo, space pauses or plays and the arrows step
+const KEYS = { ' ': toggle, ArrowRight: () => step(1), ArrowLeft: () => step(-1) };
+
+// The same keys drive the mechanism when it shows
+const MKEYS = { ' ': mToggle, ArrowRight: () => mStep(1), ArrowLeft: () => mStep(-1) };
+
+// One row per case, under its group's label: dot, name, and how it ended
+$('mlist').innerHTML = MGROUPS.map((group) => `<p class="lbl">${html(group)}</p>${MECH.map((one, i) => (one.group === group ? `<button class="mitem" type="button" data-m="${i}"><span class="dot ${one.dot}"></span><span class="name">${html(one.name)}</span><span class="word">${html(one.word)}</span></button>` : '')).join('')}`).join('');
+
+// A row starts its case, playing
+$('mlist').addEventListener('click', (event) => {
+
+    // The row clicked, if the click was on one
+    const row = event.target.closest('.mitem');
+
+    // Clicks on a label do nothing
+    if (!row) return;
+
+    // Choosing a case plays it, even if play was paused
+    mPlaying = true;
+
+    // From its first step
+    mSelect(+row.dataset.m);
+});
+
+// Back a mechanism step
+$('mback').addEventListener('click', () => mStep(-1));
+
+// Forward a mechanism step
+$('mnext').addEventListener('click', () => mStep(1));
+
+// Pause or play the mechanism
+$('mplay').addEventListener('click', mToggle);
+
+// Keys work without a mouse
+document.addEventListener('keydown', (event) => {
+
+    // The keys for whichever player shows; the reading views keep their own scrolling
+    const keys = !$('mech').hidden ? MKEYS : !$('demo').hidden ? KEYS : null;
+
+    // Leaves the browser's shortcuts, unused keys, and a focused button's own space press alone
+    if (!keys || event.altKey || event.ctrlKey || event.metaKey || !keys[event.key] || (event.key === ' ' && event.target.tagName === 'BUTTON')) return;
+
+    // Stops space from scrolling the page
+    event.preventDefault();
+
+    // The key's action
+    keys[event.key]();
+});
+
+// The address decides the view, now and whenever it changes
+window.addEventListener('hashchange', route);
+
+// Lines wrap differently at each width, so the visible player's panel height is measured again
+window.addEventListener('resize', () => (!$('mech').hidden ? mFit() : !$('demo').hidden ? fitHeight() : null));
+
+// The panel's height first, so nothing jumps
+fitHeight();
+
+// The first item in the list starts playing
+select(ORDER[0]);
+
+// Then the address may open the paper or the license instead
+route();
+</script>
+</body>
+</html>
